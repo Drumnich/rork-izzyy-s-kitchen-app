@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.izzys-kitchen-manager-ml92cg39"
+      "bundleIdentifier": "app.rork.izzyys-kitchen-manager-ml92cg39"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.izzys-kitchen-manager-ml92cg39"
+      "package": "app.rork.izzyys-kitchen-manager-ml92cg39"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
