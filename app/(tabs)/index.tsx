@@ -6,7 +6,6 @@ import { useAuthStore } from '@/stores/auth-store';
 import { OrderCard } from '@/components/OrderCard';
 import { Colors } from '@/constants/colors';
 import { Plus, LogOut } from 'lucide-react-native';
-import { Navigate } from 'react-router-dom';
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -18,10 +17,13 @@ export default function OrdersScreen() {
     loadOrders();
   }, [loadOrders]);
 
-  const { user, loading } = useAuth();
-if (!loading && !user) {
-  return <Navigate to="/auth" replace />;
-}
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!currentUser) {
+      console.log('🏠 OrdersScreen - No current user, redirecting to login');
+      router.replace('/login');
+    }
+  }, [currentUser, router]);
 
   const activeOrders = useMemo(() => {
     return orders
