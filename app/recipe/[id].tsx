@@ -1,20 +1,54 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useRecipeStore } from '@/stores/recipe-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { Colors } from '@/constants/colors';
-import { Clock, Users, ChefHat } from 'lucide-react-native';
+import { Clock, Users, ChefHat, Trash2 } from 'lucide-react-native';
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getRecipeById } = useRecipeStore();
+  const router = useRouter();
+  const { getRecipeById, deleteRecipe } = useRecipeStore();
   const { currentUser } = useAuthStore();
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const recipe = getRecipeById(id!);
 
   if (!currentUser) {
     return null;
   }
+
+  const handleDeleteRecipe = () => {
+    Alert.alert(
+      'Delete Recipe',
+      `Are you sure you want to delete "${recipe?.name}"? This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!recipe) return;
+            
+            setIsDeleting(true);
+            try {
+              await deleteRecipe(recipe.id);
+              console.log('🗑️ Recipe deleted successfully:', recipe.name);
+              router.back();
+            } catch (error) {
+              console.error('❌ Failed to delete recipe:', error);
+              Alert.alert('Error', 'Failed to delete recipe. Please try again.');
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (!recipe) {
     return (
@@ -34,6 +68,15 @@ export default function RecipeDetailScreen() {
           title: recipe.name,
           headerStyle: { backgroundColor: Colors.background },
           headerTintColor: Colors.text,
+          headerRight: () => currentUser.role === 'admin' ? (
+            <TouchableOpacity 
+              onPress={handleDeleteRecipe} 
+              style={styles.deleteButton}
+              disabled={isDeleting}
+            >
+              <Trash2 size={20} color={Colors.error} />
+            </TouchableOpacity>
+          ) : null,
         }} 
       />
 
@@ -89,6 +132,22 @@ export default function RecipeDetailScreen() {
             ))}
           </View>
         </View>
+
+        {/* Admin Delete Button */}
+        {currentUser.role === 'admin' && (
+          <View style={styles.adminActions}>
+            <TouchableOpacity 
+              style={styles.deleteRecipeButton} 
+              onPress={handleDeleteRecipe}
+              disabled={isDeleting}
+            >
+              <Trash2 size={20} color={Colors.surface} />
+              <Text style={styles.deleteRecipeButtonText}>
+                {isDeleting ? 'Deleting...' : 'Delete Recipe'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -205,5 +264,35 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 18,
     color: Colors.textSecondary,
+  },
+  deleteButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  adminActions: {
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  deleteRecipeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: Colors.error,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 12,
+    shadowColor: Colors.error,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  deleteRecipeButtonText: {
+    color: Colors.surface,
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
