@@ -4,7 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useOrderStore } from '@/stores/order-store';
 import { useCustomerStore } from '@/stores/customer-store';
 import { useAuthStore } from '@/stores/auth-store';
-import { mockProducts } from '@/mocks/products';
+import { useRecipeStore } from '@/stores/recipe-store';
 import { Colors } from '@/constants/colors';
 import { OrderItem } from '@/types/order';
 import { Customer } from '@/types/customer';
@@ -15,6 +15,7 @@ export default function CreateOrderScreen() {
   const { addOrder } = useOrderStore();
   const { customers, loadCustomers } = useCustomerStore();
   const { currentUser } = useAuthStore();
+  const { recipes, loadRecipes } = useRecipeStore();
   
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [newCustomerName, setNewCustomerName] = useState('');
@@ -31,10 +32,11 @@ export default function CreateOrderScreen() {
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
-  // Load customers when component mounts
+  // Load customers and recipes when component mounts
   useEffect(() => {
     loadCustomers();
-  }, [loadCustomers]);
+    loadRecipes();
+  }, [loadCustomers, loadRecipes]);
 
   if (!currentUser || currentUser.role !== 'admin') {
     return null;
@@ -519,16 +521,23 @@ export default function CreateOrderScreen() {
             </View>
             
             <ScrollView style={styles.productList}>
-              {mockProducts.map((product) => (
-                <TouchableOpacity
-                  key={product.id}
-                  style={styles.productItem}
-                  onPress={() => handleAddItem(product.id, product.name)}
-                >
-                  <Text style={styles.productName}>{product.name}</Text>
-                  <Text style={styles.productCategory}>{product.category}</Text>
-                </TouchableOpacity>
-              ))}
+              {recipes.length === 0 ? (
+                <View style={styles.emptyProductsContainer}>
+                  <Text style={styles.emptyProductsText}>No recipes available</Text>
+                  <Text style={styles.emptyProductsSubtext}>Add recipes first to create orders</Text>
+                </View>
+              ) : (
+                recipes.map((recipe) => (
+                  <TouchableOpacity
+                    key={recipe.id}
+                    style={styles.productItem}
+                    onPress={() => handleAddItem(recipe.id, recipe.name)}
+                  >
+                    <Text style={styles.productName}>{recipe.name}</Text>
+                    <Text style={styles.productCategory}>{recipe.category}</Text>
+                  </TouchableOpacity>
+                ))
+              )}
             </ScrollView>
           </View>
         </View>
@@ -858,5 +867,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     textTransform: 'capitalize',
+  },
+  emptyProductsContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyProductsText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  emptyProductsSubtext: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
 });
