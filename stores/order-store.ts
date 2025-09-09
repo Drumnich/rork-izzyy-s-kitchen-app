@@ -31,13 +31,13 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('📋 Order store - Load orders error:', error);
-        console.error('📋 Order store - Error details:', {
+        console.error('📋 Order store - Load orders error:', JSON.stringify(error, null, 2));
+        console.error('📋 Order store - Error details:', JSON.stringify({
           message: error.message,
           details: error.details,
           hint: error.hint,
           code: error.code
-        });
+        }, null, 2));
         set({ isLoading: false });
         return;
       }
@@ -57,7 +57,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
       set({ orders: formattedOrders, isLoading: false });
     } catch (error) {
-      console.error('📋 Order store - Load orders catch error:', error);
+      console.error('📋 Order store - Load orders catch error:', JSON.stringify(error, null, 2));
       set({ isLoading: false });
     }
   },
@@ -73,7 +73,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         .limit(1);
       
       if (testError) {
-        console.error('📋 Order store - Database connection test failed:', testError);
+        console.error('📋 Order store - Database connection test failed:', JSON.stringify(testError, null, 2));
         throw new Error(`Database connection failed: ${testError.message}. Please make sure you've run the database setup script in your Supabase SQL Editor.`);
       }
       
@@ -90,13 +90,13 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         .single();
 
       if (error) {
-        console.error('📋 Order store - Add order error:', error);
-        console.error('📋 Order store - Error details:', {
+        console.error('📋 Order store - Add order error:', JSON.stringify(error, null, 2));
+        console.error('📋 Order store - Error details:', JSON.stringify({
           message: error.message,
           details: error.details,
           hint: error.hint,
           code: error.code
-        });
+        }, null, 2));
         
         if (error.code === '42P01') {
           throw new Error('Database table "orders" does not exist. Please run the database setup script in your Supabase SQL Editor first.');
@@ -119,7 +119,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       set((state) => ({ orders: [newOrder, ...state.orders] }));
       console.log('📋 Order store - Order added successfully');
     } catch (error) {
-      console.error('📋 Order store - Add order catch error:', error);
+      console.error('📋 Order store - Add order catch error:', JSON.stringify(error, null, 2));
       if (error instanceof Error) {
         throw error;
       } else {
@@ -138,7 +138,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         .single();
 
       if (error) {
-        console.error('📋 Order store - Update order status error:', error);
+        console.error('📋 Order store - Update order status error:', JSON.stringify(error, null, 2));
         throw new Error(`Failed to update order status: ${error.message || 'Unknown database error'}`);
       }
 
@@ -159,7 +159,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      console.error('📋 Order store - Update order status error:', error);
+      console.error('📋 Order store - Update order status error:', JSON.stringify(error, null, 2));
       if (error instanceof Error) {
         throw error;
       } else {
@@ -185,7 +185,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         .single();
 
       if (error) {
-        console.error('📋 Order store - Update order error:', error);
+        console.error('📋 Order store - Update order error:', JSON.stringify(error, null, 2));
         throw new Error(`Failed to update order: ${error.message || 'Unknown database error'}`);
       }
 
@@ -206,7 +206,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      console.error('📋 Order store - Update order error:', error);
+      console.error('📋 Order store - Update order error:', JSON.stringify(error, null, 2));
       if (error instanceof Error) {
         throw error;
       } else {
@@ -223,7 +223,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         .eq('id', orderId);
 
       if (error) {
-        console.error('📋 Order store - Delete order error:', error);
+        console.error('📋 Order store - Delete order error:', JSON.stringify(error, null, 2));
         throw new Error(`Failed to delete order: ${error.message || 'Unknown database error'}`);
       }
 
@@ -231,7 +231,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         orders: state.orders.filter((order) => order.id !== orderId),
       }));
     } catch (error) {
-      console.error('📋 Order store - Delete order error:', error);
+      console.error('📋 Order store - Delete order error:', JSON.stringify(error, null, 2));
       if (error instanceof Error) {
         throw error;
       } else {
