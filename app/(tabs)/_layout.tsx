@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Colors } from '@/constants/colors';
-import { ClipboardList, BookOpen, Users, Settings } from 'lucide-react-native';
+import { ClipboardList, BookOpen, Users, Settings, History } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -32,6 +32,15 @@ export default function TabLayout() {
           title: 'Recipes',
           tabBarIcon: ({ color, size }) => (
             <BookOpen size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color, size }) => (
+            <History size={size} color={color} />
           ),
         }}
       />
