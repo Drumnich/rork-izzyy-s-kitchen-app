@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useOrderStore } from '@/stores/order-store';
@@ -15,7 +15,7 @@ export default function CreateOrderScreen() {
   const { addOrder } = useOrderStore();
   const { customers, loadCustomers } = useCustomerStore();
   const { currentUser } = useAuthStore();
-  const { recipes, loadRecipes } = useRecipeStore();
+  const { recipes, loadRecipes, isLoading: isLoadingRecipes } = useRecipeStore();
   
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [newCustomerName, setNewCustomerName] = useState('');
@@ -30,6 +30,7 @@ export default function CreateOrderScreen() {
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [specialNotes, setSpecialNotes] = useState('');
   const [showProductPicker, setShowProductPicker] = useState(false);
+  const [productSearchQuery, setProductSearchQuery] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
 
   // Load customers and recipes when component mounts
@@ -37,6 +38,16 @@ export default function CreateOrderScreen() {
     loadCustomers();
     loadRecipes();
   }, [loadCustomers, loadRecipes]);
+
+  // Ensure recipes are refreshed when opening product picker
+  useEffect(() => {
+    if (showProductPicker) {
+      console.log('🧁 CreateOrder - Refreshing recipes for product picker');
+      loadRecipes();
+    } else {
+      setProductSearchQuery('');
+    }
+  }, [showProductPicker, loadRecipes]);
 
   if (!currentUser || currentUser.role !== 'admin') {
     return null;
@@ -230,6 +241,13 @@ export default function CreateOrderScreen() {
 
   const dateOptions = generateDateOptions();
   const timeOptions = generateTimeOptions();
+
+  const filteredRecipes = useMemo(() => {
+    const q = productSearchQuery.trim().toLowerCase();
+    const list = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
+    if (!q) return list;
+    return list.filter(r => r.name.toLowerCase().includes(q) || r.category.toLowerCase().includes(q));
+  }, [recipes, productSearchQuery]);
 
   return (
     <ScrollView style={styles.container}>
@@ -519,15 +537,31 @@ export default function CreateOrderScreen() {
                 <X size={24} color={Colors.text} />
               </TouchableOpacity>
             </View>
+
+            <View style={styles.searchContainer}>
+              <Search size={20} color={Colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                value={productSearchQuery}
+                onChangeText={setProductSearchQuery}
+                placeholder="Search products..."
+                placeholderTextColor={Colors.textSecondary}
+                autoFocus
+              />
+            </View>
             
             <ScrollView style={styles.productList}>
-              {recipes.length === 0 ? (
+              {isLoadingRecipes ? (
                 <View style={styles.emptyProductsContainer}>
-                  <Text style={styles.emptyProductsText}>No recipes available</Text>
-                  <Text style={styles.emptyProductsSubtext}>Add recipes first to create orders</Text>
+                  <Text style={styles.emptyProductsText}>Loading products...</Text>
+                </View>
+              ) : filteredRecipes.length === 0 ? (
+                <View style={styles.emptyProductsContainer}>
+                  <Text style={styles.emptyProductsText}>No products found</Text>
+                  <Text style={styles.emptyProductsSubtext}>Try a different search or add recipes</Text>
                 </View>
               ) : (
-                recipes.map((recipe) => (
+                filteredRecipes.map((recipe) => (
                   <TouchableOpacity
                     key={recipe.id}
                     style={styles.productItem}
