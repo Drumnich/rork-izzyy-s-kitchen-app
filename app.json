@@ -22,7 +22,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.izzyys-kitchen-manager-ml92cg39"
+      "package": "app.rork.izzyys_kitchen_manager_ml92cg39"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
