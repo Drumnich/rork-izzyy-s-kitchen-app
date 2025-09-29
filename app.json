@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
@@ -15,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.izzyys-kitchen-manager-ml92cg39"
+      "bundleIdentifier": "app.rork.izzyys_kitchen_manager_ml92cg39"
     },
     "android": {
       "adaptiveIcon": {
@@ -37,6 +36,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_PROJECT_ID"
+      }
     }
   }
 }
