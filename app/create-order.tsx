@@ -82,15 +82,38 @@ export default function CreateOrderScreen() {
     
     const combinedDateTime = new Date(year, month, day, hours, minutes, 0, 0);
     
-    setSelectedDeadline(combinedDateTime.toISOString());
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const formattedDateTime = `${year}-${pad(month + 1)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00`;
+    
+    console.log('📅 Selected deadline:', {
+      selectedDate: selectedDate.toDateString(),
+      selectedTime: time.toLocaleTimeString(),
+      combinedDateTime: combinedDateTime.toString(),
+      formattedDateTime,
+      localString: combinedDateTime.toLocaleString(),
+    });
+    
+    setSelectedDeadline(formattedDateTime);
     setShowDatePicker(false);
     setShowTimePicker(false);
   };
 
   const getDeadlineLabel = () => {
     if (!selectedDeadline) return 'Select deadline';
-    const date = new Date(selectedDeadline);
-    return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const parts = selectedDeadline.split('T');
+    if (parts.length === 2) {
+      const datePart = parts[0];
+      const timePart = parts[1].substring(0, 5);
+      const [year, month, day] = datePart.split('-');
+      const [hours, minutes] = timePart.split(':');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      const hour = parseInt(hours);
+      const minute = parseInt(minutes);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return date.toLocaleDateString() + ' at ' + displayHour + ':' + minutes + ' ' + ampm;
+    }
+    return selectedDeadline;
   };
 
   const handleAddItem = (productId: string, productName: string) => {
