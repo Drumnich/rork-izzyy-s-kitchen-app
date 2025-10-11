@@ -73,12 +73,10 @@ export default function CreateOrderScreen() {
     setShowCustomerPicker(false);
   };
 
-  const handleDateTimeSelection = (time: Date) => {
+  const handleDateTimeSelection = (hours: number, minutes: number) => {
     const year = selectedDate.getFullYear();
     const month = selectedDate.getMonth();
     const day = selectedDate.getDate();
-    const hours = time.getHours();
-    const minutes = time.getMinutes();
     
     const combinedDateTime = new Date(year, month, day, hours, minutes, 0, 0);
     
@@ -87,7 +85,8 @@ export default function CreateOrderScreen() {
     
     console.log('📅 Selected deadline:', {
       selectedDate: selectedDate.toDateString(),
-      selectedTime: time.toLocaleTimeString(),
+      selectedHours: hours,
+      selectedMinutes: minutes,
       combinedDateTime: combinedDateTime.toString(),
       formattedDateTime,
       localString: combinedDateTime.toLocaleString(),
@@ -252,14 +251,16 @@ export default function CreateOrderScreen() {
 
   // Generate time options
   const generateTimeOptions = () => {
-    const times = [];
-    const baseDate = new Date();
-    baseDate.setHours(8, 0, 0, 0); // Start at 8:00 AM
+    const times: { hours: number; minutes: number; label: string }[] = [];
     
-    for (let i = 0; i < 20; i++) { // 8 AM to 4 AM next day (20 hours)
-      const time = new Date(baseDate);
-      time.setHours(baseDate.getHours() + i);
-      times.push(time);
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const displayHour = hour % 12 || 12;
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const label = `${displayHour}:${pad(minute)} ${ampm}`;
+        times.push({ hours: hour, minutes: minute, label });
+      }
     }
     
     return times;
@@ -533,18 +534,20 @@ export default function CreateOrderScreen() {
                   key={index}
                   style={[
                     styles.timeItem,
-                    selectedTime.getHours() === time.getHours() && styles.timeItemSelected
+                    selectedTime.getHours() === time.hours && selectedTime.getMinutes() === time.minutes && styles.timeItemSelected
                   ]}
                   onPress={() => {
-                    setSelectedTime(time);
-                    handleDateTimeSelection(time);
+                    const newTime = new Date();
+                    newTime.setHours(time.hours, time.minutes, 0, 0);
+                    setSelectedTime(newTime);
+                    handleDateTimeSelection(time.hours, time.minutes);
                   }}
                 >
                   <Text style={[
                     styles.timeItemText,
-                    selectedTime.getHours() === time.getHours() && styles.timeItemTextSelected
+                    selectedTime.getHours() === time.hours && selectedTime.getMinutes() === time.minutes && styles.timeItemTextSelected
                   ]}>
-                    {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {time.label}
                   </Text>
                 </TouchableOpacity>
               ))}
