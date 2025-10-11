@@ -3,14 +3,15 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Order } from '@/types/order';
 import { Colors } from '@/constants/colors';
 import { StatusBadge } from './StatusBadge';
-import { Clock, User } from 'lucide-react-native';
+import { Clock, User, CheckCircle2, Circle } from 'lucide-react-native';
 
 interface OrderCardProps {
   order: Order;
   onPress: () => void;
+  onTogglePaid?: () => void;
 }
 
-export function OrderCard({ order, onPress }: OrderCardProps) {
+export function OrderCard({ order, onPress, onTogglePaid }: OrderCardProps) {
   const deadline = new Date(order.deadline);
   const isUrgent = deadline.getTime() - Date.now() < 24 * 60 * 60 * 1000; // Less than 24 hours
 
@@ -40,6 +41,20 @@ export function OrderCard({ order, onPress }: OrderCardProps) {
             Due: {deadline.toLocaleDateString()} at {deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
+        <TouchableOpacity 
+          onPress={onTogglePaid}
+          disabled={!onTogglePaid}
+          style={[styles.paidPill, order.paid ? styles.paid : styles.unpaid]}
+          testID="paid-status-pill"
+          activeOpacity={0.7}
+        >
+          {order.paid ? (
+            <CheckCircle2 size={14} color={Colors.surface} />
+          ) : (
+            <Circle size={14} color={Colors.surface} />
+          )}
+          <Text style={styles.paidText}>{order.paid ? 'Paid' : 'Not paid'}</Text>
+        </TouchableOpacity>
       </View>
 
       {order.specialNotes && (
@@ -120,5 +135,24 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+  },
+  paidPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  paid: {
+    backgroundColor: '#10B981',
+  },
+  unpaid: {
+    backgroundColor: '#F59E0B',
+  },
+  paidText: {
+    color: Colors.surface,
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

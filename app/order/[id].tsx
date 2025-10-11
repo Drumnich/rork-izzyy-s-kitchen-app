@@ -8,12 +8,12 @@ import { mockProducts } from '@/mocks/products';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Colors } from '@/constants/colors';
 import { OrderStatus } from '@/types/order';
-import { Clock, User, FileText, Edit3, Trash2, Edit } from 'lucide-react-native';
+import { Clock, User, FileText, Edit3, Trash2, Edit, DollarSign } from 'lucide-react-native';
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { getOrderById, updateOrderStatus, deleteOrder } = useOrderStore();
+  const { getOrderById, updateOrderStatus, deleteOrder, updateOrderPaid } = useOrderStore();
   const { getRecipeById } = useRecipeStore();
   const { currentUser } = useAuthStore();
   
@@ -22,6 +22,7 @@ export default function OrderDetailScreen() {
   const [isDeletingOrder, setIsDeletingOrder] = useState<boolean>(false);
   const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [isTogglingPaid, setIsTogglingPaid] = useState<boolean>(false);
 
   if (!currentUser) {
     return null;
@@ -63,6 +64,20 @@ export default function OrderDetailScreen() {
     setShowStatusModal(true);
   };
 
+  const handleTogglePaid = async () => {
+    if (isTogglingPaid) return;
+    try {
+      setIsTogglingPaid(true);
+      await updateOrderPaid(order.id, !order.paid);
+      Alert.alert('Success', `Marked as ${!order.paid ? 'paid' : 'not paid'}.`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to update paid status';
+      Alert.alert('Error', msg);
+    } finally {
+      setIsTogglingPaid(false);
+    }
+  };
+
   const handleEditOrder = () => {
     console.log('🔧 Order Detail - Edit button pressed for order:', order.id);
     router.push(`/edit-order/${order.id}`);
@@ -75,11 +90,8 @@ export default function OrderDetailScreen() {
   };
 
   const handleViewRecipe = (itemName: string) => {
-    // Find the product that matches the item name
     const product = mockProducts.find(p => p.name === itemName);
-    
     if (product && product.recipeId) {
-      // Check if the recipe exists
       const recipe = getRecipeById(product.recipeId);
       if (recipe) {
         router.push(`/recipe/${product.recipeId}`);
@@ -139,12 +151,27 @@ export default function OrderDetailScreen() {
               <TouchableOpacity 
                 style={styles.recipeButton}
                 onPress={() => handleViewRecipe(item.name)}
+                testID={`view-recipe-${item.id}`}
               >
                 <FileText size={14} color={Colors.primary} />
                 <Text style={styles.recipeButtonText}>View Recipe</Text>
               </TouchableOpacity>
             </View>
           ))}
+        </View>
+
+        {/* Paid status */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment</Text>
+          <TouchableOpacity
+            style={[styles.actionButton, order.paid ? styles.paidButton : styles.unpaidButton]}
+            onPress={handleTogglePaid}
+            activeOpacity={0.7}
+            testID="toggle-paid-button"
+          >
+            <DollarSign size={20} color={Colors.surface} />
+            <Text style={styles.actionButtonText}>{isTogglingPaid ? 'Updating...' : order.paid ? 'Mark as Not Paid' : 'Mark as Paid'}</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Special Notes */}
@@ -226,6 +253,7 @@ export default function OrderDetailScreen() {
             <Text style={styles.debugText}>Current User Role: {currentUser.role}</Text>
             <Text style={styles.debugText}>Is Updating: {isUpdatingStatus.toString()}</Text>
             <Text style={styles.debugText}>Is Deleting: {isDeletingOrder.toString()}</Text>
+            <Text style={styles.debugText}>Paid: {order.paid ? 'Yes' : 'No'}</Text>
           </View>
         )}
       </View>
@@ -399,7 +427,7 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: 500,
     color: Colors.text,
     flex: 1,
   },
@@ -522,6 +550,12 @@ const styles = StyleSheet.create({
   },
   deleteActionButton: {
     backgroundColor: Colors.error,
+  },
+  paidButton: {
+    backgroundColor: '#10B981',
+  },
+  unpaidButton: {
+    backgroundColor: '#F59E0B',
   },
   actionButtonText: {
     color: Colors.surface,

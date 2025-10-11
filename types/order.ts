@@ -16,6 +16,7 @@ export type Order = {
   specialNotes?: string;
   createdAt: string;
   updatedAt: string;
+  paid: boolean;
 };
 
 export type Recipe = {

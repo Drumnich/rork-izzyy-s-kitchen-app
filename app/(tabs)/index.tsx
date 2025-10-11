@@ -1,5 +1,5 @@
-import React, { useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useMemo, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useOrderStore } from '@/stores/order-store';
 import { useAuthStore } from '@/stores/auth-store';
@@ -9,15 +9,13 @@ import { Plus, LogOut } from 'lucide-react-native';
 
 export default function OrdersScreen() {
   const router = useRouter();
-  const { orders, loadOrders, isLoading } = useOrderStore();
+  const { orders, loadOrders, isLoading, updateOrderPaid } = useOrderStore();
   const { currentUser, logout } = useAuthStore();
 
-  // Load orders when component mounts
   useEffect(() => {
     loadOrders();
   }, [loadOrders]);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!currentUser) {
       console.log('🏠 OrdersScreen - No current user, redirecting to login');
@@ -43,15 +41,22 @@ export default function OrdersScreen() {
   const handleLogout = () => {
     console.log('🏠 OrdersScreen - Logout button pressed');
     logout();
-    // Force navigation to login screen
     router.replace('/login');
   };
+
+  const handleTogglePaid = useCallback(async (orderId: string, current: boolean) => {
+    try {
+      await updateOrderPaid(orderId, !current);
+      Alert.alert('Success', `Marked as ${!current ? 'paid' : 'not paid'}.`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to update paid status';
+      Alert.alert('Error', msg);
+    }
+  }, [updateOrderPaid]);
 
   if (!currentUser) {
     return null;
   }
-
-  console.log('🏠 OrdersScreen - Current user role:', currentUser.role, 'Should show + button:', currentUser.role === 'admin');
 
   return (
     <View style={styles.container}>
@@ -89,7 +94,6 @@ export default function OrdersScreen() {
         </Text>
       </View>
 
-      {/* Admin Create Order Button - Always visible for admin */}
       {currentUser.role === 'admin' && (
         <View style={styles.adminActions}>
           <TouchableOpacity style={styles.createOrderButton} onPress={handleCreateOrder}>
@@ -120,6 +124,7 @@ export default function OrdersScreen() {
             <OrderCard 
               order={item} 
               onPress={() => handleOrderPress(item.id)} 
+              onTogglePaid={() => handleTogglePaid(item.id, item.paid)}
             />
           )}
           contentContainerStyle={styles.listContent}

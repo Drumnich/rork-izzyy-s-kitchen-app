@@ -8,9 +8,10 @@ interface OrderState {
   
   // Actions
   loadOrders: () => Promise<void>;
-  addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'paid'>) => Promise<void>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   updateOrder: (orderId: string, updates: Partial<Order>) => Promise<void>;
+  updateOrderPaid: (orderId: string, paid: boolean) => Promise<void>;
   deleteOrder: (orderId: string) => Promise<void>;
   getOrderById: (orderId: string) => Order | undefined;
   getOrdersByStatus: (status: OrderStatus) => Order[];
@@ -53,6 +54,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         specialNotes: order.special_notes || undefined,
         createdAt: order.created_at,
         updatedAt: order.updated_at,
+        paid: Boolean((order as any).paid) || false,
       }));
 
       set({ orders: formattedOrders, isLoading: false });
@@ -85,6 +87,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
           status: orderData.status,
           deadline: orderData.deadline,
           special_notes: orderData.specialNotes || null,
+          paid: false,
         }])
         .select()
         .single();
@@ -114,6 +117,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         specialNotes: data.special_notes || undefined,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        paid: Boolean(data.paid) || false,
       };
 
       set((state) => ({ orders: [newOrder, ...state.orders] }));
@@ -151,6 +155,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         specialNotes: data.special_notes || undefined,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        paid: Boolean(data.paid) || false,
       };
 
       set((state) => ({
@@ -176,6 +181,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.deadline) dbUpdates.deadline = updates.deadline;
       if (updates.specialNotes !== undefined) dbUpdates.special_notes = updates.specialNotes || null;
+      if (updates.paid !== undefined) dbUpdates.paid = updates.paid;
 
       const { data, error } = await supabase
         .from('orders')
@@ -198,6 +204,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         specialNotes: data.special_notes || undefined,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        paid: Boolean(data.paid) || false,
       };
 
       set((state) => ({
@@ -211,6 +218,47 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         throw error;
       } else {
         throw new Error(`Unknown error occurred while updating order: ${JSON.stringify(error)}`);
+      }
+    }
+  },
+
+  updateOrderPaid: async (orderId, paid) => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ paid })
+        .eq('id', orderId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('📋 Order store - Update paid error:', JSON.stringify(error, null, 2));
+        throw new Error(`Failed to update paid status: ${error.message || 'Unknown database error'}`);
+      }
+
+      const updatedOrder: Order = {
+        id: data.id,
+        customerName: data.customer_name,
+        items: data.items,
+        status: data.status as OrderStatus,
+        deadline: data.deadline,
+        specialNotes: data.special_notes || undefined,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        paid: Boolean(data.paid) || false,
+      };
+
+      set((state) => ({
+        orders: state.orders.map((order) =>
+          order.id === orderId ? updatedOrder : order
+        ),
+      }));
+    } catch (error) {
+      console.error('📋 Order store - Update paid catch error:', JSON.stringify(error, null, 2));
+      if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error(`Unknown error occurred while updating paid status: ${JSON.stringify(error)}`);
       }
     }
   },

@@ -40,6 +40,7 @@ CREATE TABLE orders (
   status TEXT NOT NULL CHECK (status IN ('pending', 'in-progress', 'ready', 'completed')),
   deadline TIMESTAMP WITH TIME ZONE NOT NULL,
   special_notes TEXT,
+  paid BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -70,10 +71,10 @@ INSERT INTO customers (name, phone, email, address, notes) VALUES
 ('Lisa Park', '(555) 456-7890', 'lisa.park@email.com', '789 Pine Rd, City, State', 'Always orders for large events');
 
 -- Insert sample orders
-INSERT INTO orders (customer_name, items, status, deadline, special_notes) VALUES 
-('Sarah Johnson', '[{"id":"1","name":"Classic Chocolate Chip Cookies","quantity":24,"notes":"Extra crispy"},{"id":"2","name":"Red Velvet Cake","quantity":1,"notes":"8-inch round"}]'::jsonb, 'pending', NOW() + INTERVAL '2 days', 'Birthday party - please add "Happy Birthday Emma" on cake'),
-('Mike Chen', '[{"id":"1","name":"Snickerdoodle Cookies","quantity":48}]'::jsonb, 'in-progress', NOW() + INTERVAL '1 day', null),
-('Lisa Park', '[{"id":"1","name":"Chocolate Birthday Cake","quantity":1,"notes":"10-inch round, chocolate frosting"}]'::jsonb, 'ready', NOW() + INTERVAL '4 hours', 'Customer will pick up at noon');
+INSERT INTO orders (customer_name, items, status, deadline, special_notes, paid) VALUES 
+('Sarah Johnson', '[{"id":"1","name":"Classic Chocolate Chip Cookies","quantity":24,"notes":"Extra crispy"},{"id":"2","name":"Red Velvet Cake","quantity":1,"notes":"8-inch round"}]'::jsonb, 'pending', NOW() + INTERVAL '2 days', 'Birthday party - please add "Happy Birthday Emma" on cake', false),
+('Mike Chen', '[{"id":"1","name":"Snickerdoodle Cookies","quantity":48}]'::jsonb, 'in-progress', NOW() + INTERVAL '1 day', null, true),
+('Lisa Park', '[{"id":"1","name":"Chocolate Birthday Cake","quantity":1,"notes":"10-inch round, chocolate frosting"}]'::jsonb, 'ready', NOW() + INTERVAL '4 hours', 'Customer will pick up at noon', false);
 
 -- Insert sample recipes
 INSERT INTO recipes (name, category, servings, prep_time, cook_time, ingredients, instructions, image) VALUES 
@@ -105,6 +106,17 @@ CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers
 
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- In case of existing schema, add paid column safely
+DO $
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='orders' AND column_name='paid'
+  ) THEN
+    ALTER TABLE orders ADD COLUMN paid BOOLEAN NOT NULL DEFAULT FALSE;
+  END IF;
+END $;
 
 -- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
