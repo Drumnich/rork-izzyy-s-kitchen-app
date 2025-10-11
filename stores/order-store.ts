@@ -5,6 +5,7 @@ import { Order, OrderStatus } from '@/types/order';
 interface OrderState {
   orders: Order[];
   isLoading: boolean;
+  paidSupported: boolean;
   
   // Actions
   loadOrders: () => Promise<void>;
@@ -20,6 +21,7 @@ interface OrderState {
 export const useOrderStore = create<OrderState>((set, get) => ({
   orders: [],
   isLoading: false,
+  paidSupported: true,
 
   loadOrders: async () => {
     set({ isLoading: true });
@@ -54,10 +56,22 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         specialNotes: order.special_notes || undefined,
         createdAt: order.created_at,
         updatedAt: order.updated_at,
-        paid: Boolean((order as any).paid) || false,
+        paid: Boolean((order as any)?.paid) || false,
       }));
 
-      set({ orders: formattedOrders, isLoading: false });
+      // Probe if 'paid' column exists
+      let paidSupported = true;
+      try {
+        const probe = await supabase.from('orders').select('paid').limit(1);
+        if (probe.error && probe.error.code === 'PGRST204' && (probe.error.message ?? '').includes("'paid'")) {
+          paidSupported = false;
+          console.warn('📋 Order store - Paid column not found, disabling paid updates');
+        }
+      } catch (e) {
+        console.warn('📋 Order store - Paid column probe failed', e);
+      }
+
+      set({ orders: formattedOrders, isLoading: false, paidSupported });
     } catch (error) {
       console.error('📋 Order store - Load orders catch error:', JSON.stringify(error, null, 2));
       set({ isLoading: false });
@@ -178,13 +192,13 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   updateOrder: async (orderId, updates) => {
     try {
-      const dbUpdates: any = {};
+      const dbUpdates: Record<string, unknown> = {};
       if (updates.customerName) dbUpdates.customer_name = updates.customerName;
       if (updates.items) dbUpdates.items = updates.items;
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.deadline) dbUpdates.deadline = updates.deadline;
       if (updates.specialNotes !== undefined) dbUpdates.special_notes = updates.specialNotes || null;
-      if (updates.paid !== undefined) dbUpdates.paid = updates.paid;
+      if (updates.paid !== undefined && get().paidSupported) dbUpdates.paid = updates.paid;
 
       const { data, error } = await supabase
         .from('orders')
@@ -227,6 +241,16 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
   updateOrderPaid: async (orderId, paid) => {
     try {
+      if (!get().paidSupported) {
+        console.warn('📋 Order store - Paid column unsupported; updating local state only');
+        set((state) => ({
+          orders: state.orders.map((order) =>
+            order.id === orderId ? { ...order, paid } : order
+          ),
+        }));
+        return;
+      }
+
       const { data, error } = await supabase
         .from('orders')
         .update({ paid })
@@ -236,6 +260,16 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
       if (error) {
         console.error('📋 Order store - Update paid error:', JSON.stringify(error, null, 2));
+        if (error.code === 'PGRST204' && (error.message ?? '').includes("'paid'")) {
+          console.warn('📋 Order store - Paid column missing on backend; falling back to local update');
+          set({ paidSupported: false });
+          set((state) => ({
+            orders: state.orders.map((order) =>
+              order.id === orderId ? { ...order, paid } : order
+            ),
+          }));
+          return;
+        }
         throw new Error(`Failed to update paid status: ${error.message || 'Unknown database error'}`);
       }
 
@@ -248,7 +282,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         specialNotes: data.special_notes || undefined,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
-        paid: Boolean(data.paid) || false,
+        paid: Boolean((data as any)?.paid) || false,
       };
 
       set((state) => ({
