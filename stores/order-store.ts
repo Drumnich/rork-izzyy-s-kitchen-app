@@ -86,8 +86,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
           items: orderData.items,
           status: orderData.status,
           deadline: orderData.deadline,
-          special_notes: orderData.specialNotes || null,
-          paid: false,
+          special_notes: orderData.specialNotes || null
         }])
         .select()
         .single();
@@ -105,7 +104,11 @@ export const useOrderStore = create<OrderState>((set, get) => ({
           throw new Error('Database table "orders" does not exist. Please run the database setup script in your Supabase SQL Editor first.');
         }
         
-        throw new Error(`Failed to add order: ${error.message || 'Unknown database error'}`);
+        if (error.code === 'PGRST204' && error.message?.includes("'paid'")) {
+          console.warn('📋 Order store - Paid column missing; proceeding without paid field');
+        } else {
+          throw new Error(`Failed to add order: ${error.message || 'Unknown database error'}`);
+        }
       }
 
       const newOrder: Order = {
