@@ -8,7 +8,7 @@ import { mockProducts } from '@/mocks/products';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Colors } from '@/constants/colors';
 import { OrderStatus } from '@/types/order';
-import { Clock, User, FileText, Edit3, Trash2 } from 'lucide-react-native';
+import { Clock, User, FileText, Edit3, Trash2, Edit } from 'lucide-react-native';
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -82,7 +82,7 @@ export default function OrderDetailScreen() {
     // Add cancel button
     buttons.push({ 
       text: 'Cancel', 
-      onPress: () => {
+      onPress: async () => {
         console.log('🔧 Status update cancelled');
         setIsUpdatingStatus(false);
       }
@@ -94,6 +94,11 @@ export default function OrderDetailScreen() {
       `Current status: ${order.status.replace('-', ' ')}`,
       buttons
     );
+  };
+
+  const handleEditOrder = () => {
+    console.log('🔧 Order Detail - Edit button pressed for order:', order.id);
+    router.push(`/edit-order/${order.id}`);
   };
 
   const handleDeleteOrder = () => {
@@ -253,6 +258,15 @@ export default function OrderDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Order Actions</Text>
             <View style={styles.actionButtons}>
+              <TouchableOpacity 
+                style={[styles.actionButton, styles.editButton]}
+                onPress={handleEditOrder}
+                activeOpacity={0.7}
+              >
+                <Edit size={20} color={Colors.surface} />
+                <Text style={styles.actionButtonText}>Edit Order</Text>
+              </TouchableOpacity>
+              
               <TouchableOpacity 
                 style={[styles.actionButton, styles.updateButton]}
                 onPress={handleStatusUpdate}
@@ -444,6 +458,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  editButton: {
+    backgroundColor: '#6366F1',
   },
   updateButton: {
     backgroundColor: Colors.primary,
