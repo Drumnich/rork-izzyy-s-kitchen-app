@@ -21,7 +21,7 @@ interface OrderState {
 export const useOrderStore = create<OrderState>((set, get) => ({
   orders: [],
   isLoading: false,
-  paidSupported: true,
+  paidSupported: false,
 
   loadOrders: async () => {
     set({ isLoading: true });
@@ -259,7 +259,6 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         .single();
 
       if (error) {
-        console.error('📋 Order store - Update paid error:', JSON.stringify(error, null, 2));
         if (error.code === 'PGRST204' && (error.message ?? '').includes("'paid'")) {
           console.warn('📋 Order store - Paid column missing on backend; falling back to local update');
           set({ paidSupported: false });
@@ -270,6 +269,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
           }));
           return;
         }
+        console.error('📋 Order store - Update paid error:', JSON.stringify(error, null, 2));
         throw new Error(`Failed to update paid status: ${error.message || 'Unknown database error'}`);
       }
 
