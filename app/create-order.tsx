@@ -73,11 +73,13 @@ export default function CreateOrderScreen() {
     setShowCustomerPicker(false);
   };
 
-  const handleDateTimeSelection = () => {
+  const handleDateTimeSelection = (time: Date) => {
     // Combine selected date and time
     const combinedDateTime = new Date(selectedDate);
-    combinedDateTime.setHours(selectedTime.getHours());
-    combinedDateTime.setMinutes(selectedTime.getMinutes());
+    combinedDateTime.setHours(time.getHours());
+    combinedDateTime.setMinutes(time.getMinutes());
+    combinedDateTime.setSeconds(0);
+    combinedDateTime.setMilliseconds(0);
     
     setSelectedDeadline(combinedDateTime.toISOString());
     setShowDatePicker(false);
@@ -511,7 +513,7 @@ export default function CreateOrderScreen() {
                   ]}
                   onPress={() => {
                     setSelectedTime(time);
-                    handleDateTimeSelection();
+                    handleDateTimeSelection(time);
                   }}
                 >
                   <Text style={[
