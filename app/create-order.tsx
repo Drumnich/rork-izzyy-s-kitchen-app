@@ -74,12 +74,13 @@ export default function CreateOrderScreen() {
   };
 
   const handleDateTimeSelection = (time: Date) => {
-    // Combine selected date and time
-    const combinedDateTime = new Date(selectedDate);
-    combinedDateTime.setHours(time.getHours());
-    combinedDateTime.setMinutes(time.getMinutes());
-    combinedDateTime.setSeconds(0);
-    combinedDateTime.setMilliseconds(0);
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+    const day = selectedDate.getDate();
+    const hours = time.getHours();
+    const minutes = time.getMinutes();
+    
+    const combinedDateTime = new Date(year, month, day, hours, minutes, 0, 0);
     
     setSelectedDeadline(combinedDateTime.toISOString());
     setShowDatePicker(false);
