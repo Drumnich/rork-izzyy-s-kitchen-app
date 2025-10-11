@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useOrderStore } from '@/stores/order-store';
 import { useCustomerStore } from '@/stores/customer-store';
@@ -23,11 +23,13 @@ export default function CreateOrderScreen() {
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [selectedItems, setSelectedItems] = useState<OrderItem[]>([]);
-  const [selectedDeadline, setSelectedDeadline] = useState('');
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedHour, setSelectedHour] = useState<number | null>(null);
+  const [selectedMinute, setSelectedMinute] = useState<number | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(new Date());
   const [specialNotes, setSpecialNotes] = useState('');
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [productSearchQuery, setProductSearchQuery] = useState<string>('');
@@ -49,15 +51,22 @@ export default function CreateOrderScreen() {
     }
   }, [showProductPicker, loadRecipes]);
 
-  if (!currentUser || currentUser.role !== 'admin') {
-    return null;
-  }
-
-  const filteredCustomers = customers.filter(customer =>
+  const filteredCustomers = useMemo(() => customers.filter(customer =>
     customer.name.toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
     customer.phone?.toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
     customer.email?.toLowerCase().includes(customerSearchQuery.toLowerCase())
-  );
+  ), [customers, customerSearchQuery]);
+
+  const filteredRecipes = useMemo(() => {
+    const q = productSearchQuery.trim().toLowerCase();
+    const list = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
+    if (!q) return list;
+    return list.filter(r => r.name.toLowerCase().includes(q) || r.category.toLowerCase().includes(q));
+  }, [recipes, productSearchQuery]);
+
+  if (!currentUser || currentUser.role !== 'admin') {
+    return null;
+  }
 
   const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
@@ -73,46 +82,42 @@ export default function CreateOrderScreen() {
     setShowCustomerPicker(false);
   };
 
-  const handleDateTimeSelection = (hours: number, minutes: number) => {
-    const year = selectedDate.getFullYear();
-    const month = selectedDate.getMonth();
-    const day = selectedDate.getDate();
-    
-    const combinedDateTime = new Date(year, month, day, hours, minutes, 0, 0);
-    
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const formattedDateTime = `${year}-${pad(month + 1)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00`;
-    
-    console.log('📅 Selected deadline:', {
-      selectedDate: selectedDate.toDateString(),
-      selectedHours: hours,
-      selectedMinutes: minutes,
-      combinedDateTime: combinedDateTime.toString(),
-      formattedDateTime,
-      localString: combinedDateTime.toLocaleString(),
-    });
-    
-    setSelectedDeadline(formattedDateTime);
-    setShowDatePicker(false);
+  const handleTimeSelection = (hours: number, minutes: number) => {
+    setSelectedHour(hours);
+    setSelectedMinute(minutes);
     setShowTimePicker(false);
+    
+    console.log('📅 Time selected:', {
+      year: selectedYear,
+      month: selectedMonth,
+      day: selectedDay,
+      hour: hours,
+      minute: minutes,
+    });
   };
 
   const getDeadlineLabel = () => {
-    if (!selectedDeadline) return 'Select deadline';
-    const parts = selectedDeadline.split('T');
-    if (parts.length === 2) {
-      const datePart = parts[0];
-      const timePart = parts[1].substring(0, 5);
-      const [year, month, day] = datePart.split('-');
-      const [hours, minutes] = timePart.split(':');
-      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      const hour = parseInt(hours);
-      const minute = parseInt(minutes);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour % 12 || 12;
-      return date.toLocaleDateString() + ' at ' + displayHour + ':' + minutes + ' ' + ampm;
+    if (selectedYear === null || selectedMonth === null || selectedDay === null || 
+        selectedHour === null || selectedMinute === null) {
+      return 'Select deadline';
     }
-    return selectedDeadline;
+    
+    const date = new Date(selectedYear, selectedMonth, selectedDay);
+    const ampm = selectedHour >= 12 ? 'PM' : 'AM';
+    const displayHour = selectedHour % 12 || 12;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    
+    return `${date.toLocaleDateString()} at ${displayHour}:${pad(selectedMinute)} ${ampm}`;
+  };
+  
+  const getDeadlineISO = (): string | null => {
+    if (selectedYear === null || selectedMonth === null || selectedDay === null || 
+        selectedHour === null || selectedMinute === null) {
+      return null;
+    }
+    
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${selectedYear}-${pad(selectedMonth + 1)}-${pad(selectedDay)}T${pad(selectedHour)}:${pad(selectedMinute)}:00`;
   };
 
   const handleAddItem = (productId: string, productName: string) => {
@@ -174,7 +179,8 @@ export default function CreateOrderScreen() {
       return;
     }
 
-    if (!selectedDeadline) {
+    const deadlineISO = getDeadlineISO();
+    if (!deadlineISO) {
       Alert.alert('Error', 'Please select a deadline');
       return;
     }
@@ -185,7 +191,7 @@ export default function CreateOrderScreen() {
       console.log('🏗️ Creating order with data:', {
         customerName,
         items: selectedItems,
-        deadline: selectedDeadline,
+        deadline: deadlineISO,
         specialNotes: specialNotes.trim() || undefined,
       });
 
@@ -193,7 +199,7 @@ export default function CreateOrderScreen() {
         customerName,
         items: selectedItems,
         status: 'pending',
-        deadline: selectedDeadline,
+        deadline: deadlineISO,
         specialNotes: specialNotes.trim() || undefined,
       });
 
@@ -218,10 +224,12 @@ export default function CreateOrderScreen() {
               setSelectedCustomer(null);
               setNewCustomerName('');
               setSelectedItems([]);
-              setSelectedDeadline('');
+              setSelectedYear(null);
+              setSelectedMonth(null);
+              setSelectedDay(null);
+              setSelectedHour(null);
+              setSelectedMinute(null);
               setSpecialNotes('');
-              setSelectedDate(new Date());
-              setSelectedTime(new Date());
             }
           }
         ]
@@ -268,13 +276,6 @@ export default function CreateOrderScreen() {
 
   const dateOptions = generateDateOptions();
   const timeOptions = generateTimeOptions();
-
-  const filteredRecipes = useMemo(() => {
-    const q = productSearchQuery.trim().toLowerCase();
-    const list = [...recipes].sort((a, b) => a.name.localeCompare(b.name));
-    if (!q) return list;
-    return list.filter(r => r.name.toLowerCase().includes(q) || r.category.toLowerCase().includes(q));
-  }, [recipes, productSearchQuery]);
 
   return (
     <ScrollView style={styles.container}>
@@ -345,7 +346,7 @@ export default function CreateOrderScreen() {
             onPress={() => setShowDatePicker(true)}
           >
             <Calendar size={20} color={Colors.textSecondary} />
-            <Text style={[styles.dropdownButtonText, !selectedDeadline && styles.placeholderText]}>
+            <Text style={[styles.dropdownButtonText, (selectedYear === null || selectedMonth === null || selectedDay === null || selectedHour === null || selectedMinute === null) && styles.placeholderText]}>
               {getDeadlineLabel()}
             </Text>
             <ChevronDown size={20} color={Colors.textSecondary} />
@@ -484,34 +485,41 @@ export default function CreateOrderScreen() {
             </View>
             
             <ScrollView style={styles.dateList}>
-              {dateOptions.map((date, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.dateItem,
-                    selectedDate.toDateString() === date.toDateString() && styles.dateItemSelected
-                  ]}
-                  onPress={() => {
-                    setSelectedDate(date);
-                    setShowDatePicker(false);
-                    setShowTimePicker(true);
-                  }}
-                >
-                  <Text style={[
-                    styles.dateItemText,
-                    selectedDate.toDateString() === date.toDateString() && styles.dateItemTextSelected
-                  ]}>
-                    {date.toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </Text>
-                  {index === 0 && <Text style={styles.todayLabel}>Today</Text>}
-                  {index === 1 && <Text style={styles.todayLabel}>Tomorrow</Text>}
-                </TouchableOpacity>
-              ))}
+              {dateOptions.map((date, index) => {
+                const isSelected = selectedYear === date.getFullYear() && 
+                                   selectedMonth === date.getMonth() && 
+                                   selectedDay === date.getDate();
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.dateItem,
+                      isSelected && styles.dateItemSelected
+                    ]}
+                    onPress={() => {
+                      setSelectedYear(date.getFullYear());
+                      setSelectedMonth(date.getMonth());
+                      setSelectedDay(date.getDate());
+                      setShowDatePicker(false);
+                      setShowTimePicker(true);
+                    }}
+                  >
+                    <Text style={[
+                      styles.dateItemText,
+                      isSelected && styles.dateItemTextSelected
+                    ]}>
+                      {date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </Text>
+                    {index === 0 && <Text style={styles.todayLabel}>Today</Text>}
+                    {index === 1 && <Text style={styles.todayLabel}>Tomorrow</Text>}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </View>
@@ -529,28 +537,26 @@ export default function CreateOrderScreen() {
             </View>
             
             <ScrollView style={styles.timeList}>
-              {timeOptions.map((time, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.timeItem,
-                    selectedTime.getHours() === time.hours && selectedTime.getMinutes() === time.minutes && styles.timeItemSelected
-                  ]}
-                  onPress={() => {
-                    const newTime = new Date();
-                    newTime.setHours(time.hours, time.minutes, 0, 0);
-                    setSelectedTime(newTime);
-                    handleDateTimeSelection(time.hours, time.minutes);
-                  }}
-                >
-                  <Text style={[
-                    styles.timeItemText,
-                    selectedTime.getHours() === time.hours && selectedTime.getMinutes() === time.minutes && styles.timeItemTextSelected
-                  ]}>
-                    {time.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {timeOptions.map((time, index) => {
+                const isSelected = selectedHour === time.hours && selectedMinute === time.minutes;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.timeItem,
+                      isSelected && styles.timeItemSelected
+                    ]}
+                    onPress={() => handleTimeSelection(time.hours, time.minutes)}
+                  >
+                    <Text style={[
+                      styles.timeItemText,
+                      isSelected && styles.timeItemTextSelected
+                    ]}>
+                      {time.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
         </View>
