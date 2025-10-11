@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Platform } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useOrderStore } from '@/stores/order-store';
@@ -41,17 +41,14 @@ export default function OrderDetailScreen() {
   const deadline = new Date(order.deadline);
   const isUrgent = deadline.getTime() - Date.now() < 24 * 60 * 60 * 1000;
 
-  const statusOptions = useMemo(() => ([
+  const statusOptions = [
     { label: 'Pending', value: 'pending' as OrderStatus },
     { label: 'In Progress', value: 'in-progress' as OrderStatus },
     { label: 'Ready', value: 'ready' as OrderStatus },
     { label: 'Completed', value: 'completed' as OrderStatus },
-  ]), []);
+  ];
 
-  const availableStatusOptions = useMemo(
-    () => statusOptions.filter((o) => o.value !== order.status),
-    [statusOptions, order.status]
-  );
+  const availableStatusOptions = statusOptions.filter((o) => o.value !== order.status);
 
   const handleStatusUpdate = () => {
     console.log('🔧 Order Detail - Status update button pressed for order:', order.id);
@@ -298,7 +295,7 @@ export default function OrderDetailScreen() {
                     await deleteOrder(order.id);
                     setShowDeleteModal(false);
                     Alert.alert('Deleted', 'Order deleted successfully');
-                    router.back();
+                    router.replace('/');
                   } catch (error) {
                     const msg = error instanceof Error ? error.message : 'Failed to delete order';
                     Alert.alert('Error', msg);
