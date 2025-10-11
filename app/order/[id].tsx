@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, Platform } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useOrderStore } from '@/stores/order-store';
 import { useAuthStore } from '@/stores/auth-store';
@@ -18,8 +18,10 @@ export default function OrderDetailScreen() {
   const { currentUser } = useAuthStore();
   
   const order = getOrderById(id!);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [isDeletingOrder, setIsDeletingOrder] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState<boolean>(false);
+  const [isDeletingOrder, setIsDeletingOrder] = useState<boolean>(false);
+  const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
 
   if (!currentUser) {
     return null;
@@ -39,61 +41,29 @@ export default function OrderDetailScreen() {
   const deadline = new Date(order.deadline);
   const isUrgent = deadline.getTime() - Date.now() < 24 * 60 * 60 * 1000;
 
+  const statusOptions = useMemo(() => ([
+    { label: 'Pending', value: 'pending' as OrderStatus },
+    { label: 'In Progress', value: 'in-progress' as OrderStatus },
+    { label: 'Ready', value: 'ready' as OrderStatus },
+    { label: 'Completed', value: 'completed' as OrderStatus },
+  ]), []);
+
+  const availableStatusOptions = useMemo(
+    () => statusOptions.filter((o) => o.value !== order.status),
+    [statusOptions, order.status]
+  );
+
   const handleStatusUpdate = () => {
     console.log('🔧 Order Detail - Status update button pressed for order:', order.id);
-    console.log('🔧 Order Detail - Current status:', order.status);
-    console.log('🔧 Order Detail - Is updating:', isUpdatingStatus);
-    
     if (isUpdatingStatus) {
       console.log('🔧 Order Detail - Already updating status, ignoring press');
       return;
     }
-    
-    const statusOptions: { label: string; value: OrderStatus }[] = [
-      { label: 'Pending', value: 'pending' },
-      { label: 'In Progress', value: 'in-progress' },
-      { label: 'Ready', value: 'ready' },
-      { label: 'Completed', value: 'completed' },
-    ];
-
-    const availableOptions = statusOptions.filter(option => option.value !== order.status);
-    console.log('🔧 Order Detail - Available status options:', availableOptions);
-
-    const buttons = availableOptions.map(option => ({
-      text: option.label,
-      onPress: async () => {
-        console.log('🔧 Order Detail - Updating status to:', option.value);
-        setIsUpdatingStatus(true);
-        
-        try {
-          await updateOrderStatus(order.id, option.value);
-          console.log('🔧 Order Detail - Status updated successfully');
-          Alert.alert('Success', `Order status updated to ${option.label}`);
-        } catch (error) {
-          console.error('🔧 Order Detail - Status update error:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Failed to update order status. Please try again.';
-          Alert.alert('Error', errorMessage);
-        } finally {
-          setIsUpdatingStatus(false);
-        }
-      },
-    }));
-
-    // Add cancel button
-    buttons.push({ 
-      text: 'Cancel', 
-      onPress: async () => {
-        console.log('🔧 Status update cancelled');
-        setIsUpdatingStatus(false);
-      }
-    });
-
-    console.log('🔧 Order Detail - Showing status update alert with', buttons.length, 'options');
-    Alert.alert(
-      'Update Order Status',
-      `Current status: ${order.status.replace('-', ' ')}`,
-      buttons
-    );
+    if (Platform.OS === 'web') {
+      setShowStatusModal(true);
+      return;
+    }
+    setShowStatusModal(true);
   };
 
   const handleEditOrder = () => {
@@ -103,50 +73,8 @@ export default function OrderDetailScreen() {
 
   const handleDeleteOrder = () => {
     console.log('🔧 Order Detail - Delete button pressed for order:', order.id);
-    console.log('🔧 Order Detail - Is deleting:', isDeletingOrder);
-    
-    if (isDeletingOrder) {
-      console.log('🔧 Order Detail - Already deleting order, ignoring press');
-      return;
-    }
-    
-    console.log('🔧 Order Detail - Showing delete confirmation alert');
-    Alert.alert(
-      'Delete Order',
-      'Are you sure you want to delete this order? This action cannot be undone.',
-      [
-        { 
-          text: 'Cancel', 
-          style: 'cancel',
-          onPress: () => {
-            console.log('🔧 Delete cancelled');
-            setIsDeletingOrder(false);
-          }
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            console.log('🔧 Order Detail - Delete confirmed, deleting order:', order.id);
-            setIsDeletingOrder(true);
-            
-            try {
-              await deleteOrder(order.id);
-              console.log('🔧 Order Detail - Order deleted successfully');
-              Alert.alert('Success', 'Order deleted successfully', [
-                { text: 'OK', onPress: () => router.back() }
-              ]);
-            } catch (error) {
-              console.error('🔧 Order Detail - Delete error:', error);
-              const errorMessage = error instanceof Error ? error.message : 'Failed to delete order. Please try again.';
-              Alert.alert('Error', errorMessage);
-            } finally {
-              setIsDeletingOrder(false);
-            }
-          },
-        },
-      ]
-    );
+    if (isDeletingOrder) return;
+    setShowDeleteModal(true);
   };
 
   const handleViewRecipe = (itemName: string) => {
@@ -253,44 +181,45 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {/* Admin Actions - Always visible and functional */}
-        {currentUser.role === 'admin' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Order Actions</Text>
-            <View style={styles.actionButtons}>
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.editButton]}
-                onPress={handleEditOrder}
-                activeOpacity={0.7}
-              >
-                <Edit size={20} color={Colors.surface} />
-                <Text style={styles.actionButtonText}>Edit Order</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.updateButton]}
-                onPress={handleStatusUpdate}
-                activeOpacity={0.7}
-              >
-                <Edit3 size={20} color={Colors.surface} />
-                <Text style={styles.actionButtonText}>
-                  {isUpdatingStatus ? 'Updating...' : 'Update Status'}
-                </Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.deleteActionButton]}
-                onPress={handleDeleteOrder}
-                activeOpacity={0.7}
-              >
-                <Trash2 size={20} color={Colors.surface} />
-                <Text style={styles.actionButtonText}>
-                  {isDeletingOrder ? 'Deleting...' : 'Delete Order'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+        {/* Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Order Actions</Text>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.editButton]}
+              onPress={handleEditOrder}
+              activeOpacity={0.7}
+              testID="edit-order-button"
+            >
+              <Edit size={20} color={Colors.surface} />
+              <Text style={styles.actionButtonText}>Edit Order</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.updateButton]}
+              onPress={handleStatusUpdate}
+              activeOpacity={0.7}
+              testID="update-status-button"
+            >
+              <Edit3 size={20} color={Colors.surface} />
+              <Text style={styles.actionButtonText}>
+                {isUpdatingStatus ? 'Updating...' : 'Update Status'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.deleteActionButton]}
+              onPress={handleDeleteOrder}
+              activeOpacity={0.7}
+              testID="delete-order-button"
+            >
+              <Trash2 size={20} color={Colors.surface} />
+              <Text style={styles.actionButtonText}>
+                {isDeletingOrder ? 'Deleting...' : 'Delete Order'}
+              </Text>
+            </TouchableOpacity>
           </View>
-        )}
+        </View>
 
         {/* Debug Info for Testing */}
         {__DEV__ && (
@@ -303,6 +232,95 @@ export default function OrderDetailScreen() {
           </View>
         )}
       </View>
+
+      {/* Status modal (web friendly) */}
+      <Modal
+        visible={showStatusModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStatusModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Update Order Status</Text>
+            <View style={{ gap: 8 }}>
+              {availableStatusOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[styles.modalButton, styles.updateButton]}
+                  onPress={async () => {
+                    try {
+                      setIsUpdatingStatus(true);
+                      await updateOrderStatus(order.id, option.value);
+                      Alert.alert('Success', `Order status updated to ${option.label}`);
+                      setShowStatusModal(false);
+                    } catch (error) {
+                      const msg = error instanceof Error ? error.message : 'Failed to update order status';
+                      Alert.alert('Error', msg);
+                    } finally {
+                      setIsUpdatingStatus(false);
+                    }
+                  }}
+                  testID={`status-option-${option.value}`}
+                >
+                  <Text style={styles.actionButtonText}>{option.label}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowStatusModal(false)}
+                testID="cancel-status-modal"
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete modal (web friendly) */}
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Delete Order</Text>
+            <Text style={styles.modalSubtitle}>This action cannot be undone.</Text>
+            <View style={{ gap: 8 }}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.deleteActionButton]}
+                onPress={async () => {
+                  try {
+                    setIsDeletingOrder(true);
+                    await deleteOrder(order.id);
+                    setShowDeleteModal(false);
+                    Alert.alert('Deleted', 'Order deleted successfully');
+                    router.back();
+                  } catch (error) {
+                    const msg = error instanceof Error ? error.message : 'Failed to delete order';
+                    Alert.alert('Error', msg);
+                  } finally {
+                    setIsDeletingOrder(false);
+                  }
+                }}
+                testID="confirm-delete"
+              >
+                <Text style={styles.actionButtonText}>{isDeletingOrder ? 'Deleting...' : 'Delete'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowDeleteModal(false)}
+                testID="cancel-delete"
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -458,6 +476,46 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: 12,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginBottom: 12,
+  },
+  modalButton: {
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#E5E7EB',
+  },
+  cancelText: {
+    color: Colors.text,
+    fontSize: 16,
+    fontWeight: '600',
   },
   editButton: {
     backgroundColor: '#6366F1',
