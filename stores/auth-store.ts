@@ -51,7 +51,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         
         // Fallback to default users if database query fails or user not found
         const defaultUsers = [
-          { id: 'default-1', name: 'Kitchen Manager', role: 'admin' as UserRole, pin: 'qwerty', createdAt: new Date().toISOString() },
+          { id: 'default-1', name: 'Kitchen Manager', role: 'admin' as UserRole, pin: '1234', createdAt: new Date().toISOString() },
           { id: 'default-2', name: 'Kitchen Staff', role: 'employee' as UserRole, pin: '5678', createdAt: new Date().toISOString() }
         ];
         
@@ -91,7 +91,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       // If no user found in database, try default users
       const defaultUsers = [
-        { id: 'default-1', name: 'Kitchen Manager', role: 'admin' as UserRole, pin: 'qwerty', createdAt: new Date().toISOString() },
+        { id: 'default-1', name: 'Kitchen Manager', role: 'admin' as UserRole, pin: '1234', createdAt: new Date().toISOString() },
         { id: 'default-2', name: 'Kitchen Staff', role: 'employee' as UserRole, pin: '5678', createdAt: new Date().toISOString() }
       ];
       
@@ -114,7 +114,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       
       // Final fallback to default users on any error
       const defaultUsers = [
-        { id: 'default-1', name: 'Kitchen Manager', role: 'admin' as UserRole, pin: 'qwerty', createdAt: new Date().toISOString() },
+        { id: 'default-1', name: 'Kitchen Manager', role: 'admin' as UserRole, pin: '1234', createdAt: new Date().toISOString() },
         { id: 'default-2', name: 'Kitchen Staff', role: 'employee' as UserRole, pin: '5678', createdAt: new Date().toISOString() }
       ];
       

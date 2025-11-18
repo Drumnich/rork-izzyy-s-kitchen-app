@@ -213,7 +213,10 @@ export default function LoginScreen() {
           </Text>
         </TouchableOpacity>
 
-
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Default PINs for testing:</Text>
+          <Text style={styles.footerText}>Manager: 1234 • Staff: 5678</Text>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -321,5 +324,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-
+  footer: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  footerText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
 });
