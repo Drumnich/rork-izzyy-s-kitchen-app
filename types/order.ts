@@ -10,6 +10,7 @@ export type OrderItem = {
 export type Order = {
   id: string;
   customerName: string;
+  phoneNumber?: string;
   items: OrderItem[];
   status: OrderStatus;
   deadline: string;

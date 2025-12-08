@@ -19,6 +19,7 @@ export default function CreateOrderScreen() {
   
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [newCustomerName, setNewCustomerName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
@@ -71,6 +72,7 @@ export default function CreateOrderScreen() {
   const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
     setNewCustomerName('');
+    setPhoneNumber(customer.phone || '');
     setShowCustomerPicker(false);
     setShowNewCustomerForm(false);
     setCustomerSearchQuery('');
@@ -168,6 +170,7 @@ export default function CreateOrderScreen() {
 
   const handleCreateOrder = async () => {
     const customerName = selectedCustomer ? selectedCustomer.name : newCustomerName.trim();
+    const phone = phoneNumber.trim();
     
     if (!customerName) {
       Alert.alert('Error', 'Please select a customer or enter a new customer name');
@@ -190,6 +193,7 @@ export default function CreateOrderScreen() {
     try {
       console.log('🏗️ Creating order with data:', {
         customerName,
+        phoneNumber: phone || undefined,
         items: selectedItems,
         deadline: deadlineISO,
         specialNotes: specialNotes.trim() || undefined,
@@ -197,6 +201,7 @@ export default function CreateOrderScreen() {
 
       await addOrder({
         customerName,
+        phoneNumber: phone || undefined,
         items: selectedItems,
         status: 'pending',
         deadline: deadlineISO,
@@ -223,6 +228,7 @@ export default function CreateOrderScreen() {
               // Reset form for another order
               setSelectedCustomer(null);
               setNewCustomerName('');
+              setPhoneNumber('');
               setSelectedItems([]);
               setSelectedYear(null);
               setSelectedMonth(null);
@@ -303,22 +309,38 @@ export default function CreateOrderScreen() {
                   )}
                 </View>
               </View>
-              <TouchableOpacity onPress={() => setSelectedCustomer(null)}>
+              <TouchableOpacity onPress={() => {
+                setSelectedCustomer(null);
+                setPhoneNumber('');
+              }}>
                 <X size={20} color={Colors.textSecondary} />
               </TouchableOpacity>
             </View>
           ) : showNewCustomerForm ? (
-            <View style={styles.newCustomerForm}>
+            <View style={styles.newCustomerFormContainer}>
+              <View style={styles.newCustomerForm}>
+                <TextInput
+                  style={styles.input}
+                  value={newCustomerName}
+                  onChangeText={setNewCustomerName}
+                  placeholder="Enter new customer name"
+                  placeholderTextColor={Colors.textSecondary}
+                />
+                <TouchableOpacity onPress={() => {
+                  setShowNewCustomerForm(false);
+                  setPhoneNumber('');
+                }}>
+                  <X size={20} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
               <TextInput
                 style={styles.input}
-                value={newCustomerName}
-                onChangeText={setNewCustomerName}
-                placeholder="Enter new customer name"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                placeholder="Phone number (optional)"
                 placeholderTextColor={Colors.textSecondary}
+                keyboardType="phone-pad"
               />
-              <TouchableOpacity onPress={() => setShowNewCustomerForm(false)}>
-                <X size={20} color={Colors.textSecondary} />
-              </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.customerButtons}>
@@ -674,6 +696,9 @@ const styles = StyleSheet.create({
   selectedCustomerDetails: {
     fontSize: 14,
     color: Colors.textSecondary,
+  },
+  newCustomerFormContainer: {
+    gap: 12,
   },
   newCustomerForm: {
     flexDirection: 'row',

@@ -36,6 +36,7 @@ CREATE TABLE orders (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   customer_id UUID REFERENCES customers(id) ON DELETE SET NULL,
   customer_name TEXT NOT NULL,
+  phone_number TEXT,
   items JSONB NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('pending', 'in-progress', 'ready', 'completed')),
   deadline TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -107,7 +108,7 @@ CREATE TRIGGER update_customers_updated_at BEFORE UPDATE ON customers
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- In case of existing schema, add paid column safely
+-- In case of existing schema, add paid and phone_number columns safely
 DO $
 BEGIN
   IF NOT EXISTS (
@@ -115,6 +116,13 @@ BEGIN
     WHERE table_name='orders' AND column_name='paid'
   ) THEN
     ALTER TABLE orders ADD COLUMN paid BOOLEAN NOT NULL DEFAULT FALSE;
+  END IF;
+  
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name='orders' AND column_name='phone_number'
+  ) THEN
+    ALTER TABLE orders ADD COLUMN phone_number TEXT;
   END IF;
 END $;
 

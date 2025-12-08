@@ -118,7 +118,12 @@ export default function OrderDetailScreen() {
         <View style={styles.header}>
           <View style={styles.customerInfo}>
             <User size={20} color={Colors.textSecondary} />
-            <Text style={styles.customerName}>{order.customerName}</Text>
+            <View>
+              <Text style={styles.customerName}>{order.customerName}</Text>
+              {order.phoneNumber && (
+                <Text style={styles.phoneNumber}>{order.phoneNumber}</Text>
+              )}
+            </View>
           </View>
           <StatusBadge status={order.status} />
         </View>
@@ -373,6 +378,11 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: Colors.text,
+  },
+  phoneNumber: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   deadlineCard: {
     flexDirection: 'row',

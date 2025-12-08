@@ -50,6 +50,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       const formattedOrders: Order[] = (orders || []).map(order => ({
         id: order.id,
         customerName: order.customer_name,
+        phoneNumber: order.phone_number || undefined,
         items: order.items,
         status: order.status as OrderStatus,
         deadline: order.deadline,
@@ -83,7 +84,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       console.log('📋 Order store - Adding order:', orderData);
       
       // Test database connection first
-      const { data: testData, error: testError } = await supabase
+      const { error: testError } = await supabase
         .from('orders')
         .select('count')
         .limit(1);
@@ -97,6 +98,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         .from('orders')
         .insert([{
           customer_name: orderData.customerName,
+          phone_number: orderData.phoneNumber || null,
           items: orderData.items,
           status: orderData.status,
           deadline: orderData.deadline,
@@ -128,6 +130,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       const newOrder: Order = {
         id: data.id,
         customerName: data.customer_name,
+        phoneNumber: data.phone_number || undefined,
         items: data.items,
         status: data.status as OrderStatus,
         deadline: data.deadline,
@@ -166,6 +169,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       const updatedOrder: Order = {
         id: data.id,
         customerName: data.customer_name,
+        phoneNumber: data.phone_number || undefined,
         items: data.items,
         status: data.status as OrderStatus,
         deadline: data.deadline,
@@ -194,6 +198,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     try {
       const dbUpdates: Record<string, unknown> = {};
       if (updates.customerName) dbUpdates.customer_name = updates.customerName;
+      if (updates.phoneNumber !== undefined) dbUpdates.phone_number = updates.phoneNumber || null;
       if (updates.items) dbUpdates.items = updates.items;
       if (updates.status) dbUpdates.status = updates.status;
       if (updates.deadline) dbUpdates.deadline = updates.deadline;
@@ -215,6 +220,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       const updatedOrder: Order = {
         id: data.id,
         customerName: data.customer_name,
+        phoneNumber: data.phone_number || undefined,
         items: data.items,
         status: data.status as OrderStatus,
         deadline: data.deadline,
