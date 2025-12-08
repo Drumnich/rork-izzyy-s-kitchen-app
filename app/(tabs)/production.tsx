@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useOrderStore } from '@/stores/order-store';
 import { Colors } from '@/constants/colors';
-import { Package } from 'lucide-react-native';
+import { Package, Calendar } from 'lucide-react-native';
 
 type ProductQuantity = {
   productName: string;
@@ -19,20 +19,21 @@ type DayProduction = {
 
 export default function ProductionScreen() {
   const { orders, loadOrders, isLoading } = useOrderStore();
+  const [viewMode, setViewMode] = useState<'1month' | '2months'>('1month');
 
   const productionData = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const dayAfterTomorrow = new Date(today);
-    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    const dayAfterStr = dayAfterTomorrow.toISOString().split('T')[0];
-
-    const tomorrowProducts = new Map<string, number>();
-    const dayAfterProducts = new Map<string, number>();
+    
+    const daysToShow = viewMode === '1month' ? 30 : 60;
+    const dateMap = new Map<string, Map<string, number>>();
+    
+    for (let i = 1; i <= daysToShow; i++) {
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + i);
+      const dateStr = futureDate.toISOString().split('T')[0];
+      dateMap.set(dateStr, new Map<string, number>());
+    }
 
     orders.forEach(order => {
       if (order.status === 'completed') return;
@@ -41,18 +42,11 @@ export default function ProductionScreen() {
       const orderDateStr = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate())
         .toISOString().split('T')[0];
 
-      let targetMap: Map<string, number> | null = null;
-      
-      if (orderDateStr === tomorrowStr) {
-        targetMap = tomorrowProducts;
-      } else if (orderDateStr === dayAfterStr) {
-        targetMap = dayAfterProducts;
-      }
-
-      if (targetMap) {
+      if (dateMap.has(orderDateStr)) {
+        const productsMap = dateMap.get(orderDateStr)!;
         order.items.forEach(item => {
-          const current = targetMap.get(item.name) || 0;
-          targetMap.set(item.name, current + item.quantity);
+          const current = productsMap.get(item.name) || 0;
+          productsMap.set(item.name, current + item.quantity);
         });
       }
     });
@@ -64,24 +58,28 @@ export default function ProductionScreen() {
     };
 
     const formatDate = (date: Date): string => {
-      return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     };
 
-    const result: DayProduction[] = [
-      {
-        date: tomorrowStr,
-        dateLabel: formatDate(tomorrow),
-        products: formatProducts(tomorrowProducts),
-      },
-      {
-        date: dayAfterStr,
-        dateLabel: formatDate(dayAfterTomorrow),
-        products: formatProducts(dayAfterProducts),
-      },
-    ];
+    const result: DayProduction[] = [];
+    
+    for (let i = 1; i <= daysToShow; i++) {
+      const futureDate = new Date(today);
+      futureDate.setDate(today.getDate() + i);
+      const dateStr = futureDate.toISOString().split('T')[0];
+      const productsMap = dateMap.get(dateStr)!;
+      
+      if (productsMap.size > 0) {
+        result.push({
+          date: dateStr,
+          dateLabel: formatDate(futureDate),
+          products: formatProducts(productsMap),
+        });
+      }
+    }
 
     return result;
-  }, [orders]);
+  }, [orders, viewMode]);
 
   const renderDaySection = (dayData: DayProduction) => {
     return (
@@ -141,11 +139,40 @@ export default function ProductionScreen() {
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Production Schedule</Text>
           <Text style={styles.headerSubtitle}>
-            What needs to be ready for the next 2 days
+            What needs to be ready for the next {viewMode === '1month' ? 'month' : '2 months'}
           </Text>
+          
+          <View style={styles.viewModeButtons}>
+            <Pressable 
+              style={[styles.viewModeButton, viewMode === '1month' && styles.viewModeButtonActive]}
+              onPress={() => setViewMode('1month')}
+            >
+              <Calendar size={16} color={viewMode === '1month' ? '#FFFFFF' : Colors.primary} />
+              <Text style={[styles.viewModeText, viewMode === '1month' && styles.viewModeTextActive]}>
+                1 Month
+              </Text>
+            </Pressable>
+            
+            <Pressable 
+              style={[styles.viewModeButton, viewMode === '2months' && styles.viewModeButtonActive]}
+              onPress={() => setViewMode('2months')}
+            >
+              <Calendar size={16} color={viewMode === '2months' ? '#FFFFFF' : Colors.primary} />
+              <Text style={[styles.viewModeText, viewMode === '2months' && styles.viewModeTextActive]}>
+                2 Months
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
-        {productionData.map(dayData => renderDaySection(dayData))}
+        {productionData.length === 0 ? (
+          <View style={styles.noOrdersContainer}>
+            <Package size={48} color={Colors.textSecondary} />
+            <Text style={styles.noOrdersText}>No orders in the selected period</Text>
+          </View>
+        ) : (
+          productionData.map(dayData => renderDaySection(dayData))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -177,6 +204,46 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 15,
     color: Colors.textSecondary,
+    marginBottom: 16,
+  },
+  viewModeButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  viewModeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    gap: 8,
+  },
+  viewModeButtonActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  viewModeText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: Colors.primary,
+  },
+  viewModeTextActive: {
+    color: '#FFFFFF',
+  },
+  noOrdersContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 16,
+  },
+  noOrdersText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    fontStyle: 'italic' as const,
   },
   daySection: {
     marginTop: 16,
