@@ -2,7 +2,7 @@
   "expo": {
     "name": "Izzyy's Kitchen",
     "slug": "izzys-kitchen-manager-ml92cg39",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
