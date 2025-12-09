@@ -4,7 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useOrderStore } from '@/stores/order-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { Colors } from '@/constants/colors';
-import { User, Shield, Trash2, Users, LogOut, Database } from 'lucide-react-native';
+import { User, Shield, Trash2, Users, LogOut, Database, BookOpen, ChevronRight } from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -111,6 +111,41 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Management Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Management</Text>
+        <TouchableOpacity 
+          style={styles.settingItem} 
+          onPress={() => router.push('/recipes')}
+        >
+          <View style={styles.settingLeft}>
+            <BookOpen size={20} color={Colors.primary} />
+            <View>
+              <Text style={styles.settingTitle}>Recipes</Text>
+              <Text style={styles.settingSubtitle}>
+                View and manage recipes
+              </Text>
+            </View>
+          </View>
+          <ChevronRight size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.settingItem} 
+          onPress={() => router.push('/customers')}
+        >
+          <View style={styles.settingLeft}>
+            <Users size={20} color={Colors.primary} />
+            <View>
+              <Text style={styles.settingTitle}>Customers</Text>
+              <Text style={styles.settingSubtitle}>
+                View and manage customers
+              </Text>
+            </View>
+          </View>
+          <ChevronRight size={20} color={Colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
       {/* Admin Only Sections */}
       {currentUser.role === 'admin' && (
         <>
@@ -118,7 +153,7 @@ export default function SettingsScreen() {
             <Text style={styles.sectionTitle}>User Management</Text>
             <TouchableOpacity style={styles.settingItem} onPress={handleUserManagement}>
               <View style={styles.settingLeft}>
-                <Users size={20} color={Colors.primary} />
+                <Shield size={20} color={Colors.primary} />
                 <View>
                   <Text style={styles.settingTitle}>Manage Users</Text>
                   <Text style={styles.settingSubtitle}>
@@ -126,7 +161,7 @@ export default function SettingsScreen() {
                   </Text>
                 </View>
               </View>
-              <Text style={styles.settingAction}>Manage</Text>
+              <ChevronRight size={20} color={Colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -167,7 +202,7 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Izzyy's Cookies Kitchen Management</Text>
+        <Text style={styles.footerText}>Izzyy&apos;s Cookies Kitchen Management</Text>
         <Text style={styles.footerVersion}>Version 1.0.0</Text>
       </View>
     </ScrollView>
