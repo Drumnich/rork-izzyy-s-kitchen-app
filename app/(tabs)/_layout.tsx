@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { ClipboardList, Settings, History, PackageCheck } from 'lucide-react-native';
@@ -13,7 +14,27 @@ export default function TabLayout() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          elevation: 0,
+          elevation: 8,
+          position: 'absolute' as const,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 999,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+            },
+          }),
+        },
+        tabBarItemStyle: {
+          paddingVertical: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500' as const,
         },
         headerShown: false,
       }}
