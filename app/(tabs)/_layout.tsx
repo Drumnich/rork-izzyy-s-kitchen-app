@@ -13,12 +13,6 @@ export default function TabLayout() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          position: 'absolute' as const,
-          bottom: 0,
-          left: 0,
-          right: 0,
-          elevation: 8,
-          zIndex: 1000,
         },
         headerShown: false,
       }}
