@@ -89,6 +89,7 @@ function RootLayoutNav() {
       <Stack.Screen name="create-recipe" options={{ presentation: 'modal', title: 'Create Recipe' }} />
       <Stack.Screen name="create-customer" options={{ presentation: 'modal', title: 'Add Customer' }} />
       <Stack.Screen name="edit-customer/[id]" options={{ title: 'Edit Customer' }} />
+      <Stack.Screen name="edit-order/[id]" options={{ title: 'Edit Order' }} />
       <Stack.Screen name="user-management" options={{ title: 'User Management' }} />
     </Stack>
   );

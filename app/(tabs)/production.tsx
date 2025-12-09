@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { Stack } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useOrderStore } from '@/stores/order-store';
 import { Colors } from '@/constants/colors';
 import { Package, Calendar } from 'lucide-react-native';
@@ -118,7 +117,7 @@ export default function ProductionScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       <Stack.Screen 
         options={{ 
           title: 'Production Plan',
@@ -174,7 +173,7 @@ export default function ProductionScreen() {
           productionData.map(dayData => renderDaySection(dayData))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -187,7 +186,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 100,
   },
   header: {
     padding: 20,
