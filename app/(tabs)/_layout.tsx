@@ -14,7 +14,6 @@ export default function TabLayout() {
           borderTopColor: Colors.border,
           borderTopWidth: 1,
           elevation: 0,
-          height: 80,
         },
         headerShown: false,
       }}
