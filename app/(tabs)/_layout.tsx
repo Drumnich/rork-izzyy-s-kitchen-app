@@ -13,7 +13,6 @@ export default function TabLayout() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          position: 'absolute' as const,
           elevation: 0,
           height: 80,
         },
