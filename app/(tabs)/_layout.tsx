@@ -1,13 +1,9 @@
 import React from 'react';
-
 import { Tabs } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { ClipboardList, Settings, History, PackageCheck } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
-  
   return (
     <Tabs
       screenOptions={{
@@ -17,17 +13,10 @@ export default function TabLayout() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          height: 60 + insets.bottom,
-          paddingBottom: insets.bottom,
-          paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500' as const,
-          marginTop: 4,
-        },
-        tabBarIconStyle: {
-          marginTop: 4,
         },
         headerShown: false,
       }}
