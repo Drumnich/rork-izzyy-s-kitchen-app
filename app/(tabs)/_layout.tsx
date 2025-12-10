@@ -15,11 +15,6 @@ export default function TabLayout() {
           borderTopColor: Colors.border,
           borderTopWidth: 1,
           elevation: 8,
-          position: 'absolute' as const,
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 999,
           ...Platform.select({
             ios: {
               shadowColor: '#000',
@@ -28,9 +23,6 @@ export default function TabLayout() {
               shadowRadius: 4,
             },
           }),
-        },
-        tabBarItemStyle: {
-          paddingVertical: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
