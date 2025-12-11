@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useOrderStore } from '@/stores/order-store';
@@ -35,6 +35,8 @@ export default function CreateOrderScreen() {
   const [showProductPicker, setShowProductPicker] = useState(false);
   const [productSearchQuery, setProductSearchQuery] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const specialNotesRef = useRef<View>(null);
 
   // Load customers and recipes when component mounts
   useEffect(() => {
@@ -289,7 +291,11 @@ export default function CreateOrderScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-    <ScrollView style={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+    <ScrollView 
+      ref={scrollViewRef}
+      style={styles.scrollContainer} 
+      keyboardShouldPersistTaps="handled"
+    >
       <Stack.Screen 
         options={{ 
           title: 'Create Order',
@@ -435,7 +441,11 @@ export default function CreateOrderScreen() {
         </View>
 
         {/* Special Notes */}
-        <View style={styles.section}>
+        <View 
+          ref={specialNotesRef}
+          style={styles.section}
+          onLayout={() => {}}
+        >
           <Text style={styles.label}>Special Notes</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
@@ -445,6 +455,11 @@ export default function CreateOrderScreen() {
             placeholderTextColor={Colors.textSecondary}
             multiline
             numberOfLines={3}
+            onFocus={() => {
+              setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true });
+              }, 300);
+            }}
           />
         </View>
 
