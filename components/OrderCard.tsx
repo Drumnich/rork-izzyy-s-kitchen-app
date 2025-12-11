@@ -13,10 +13,14 @@ interface OrderCardProps {
 
 export function OrderCard({ order, onPress, onTogglePaid }: OrderCardProps) {
   const deadline = new Date(order.deadline);
-  const isUrgent = deadline.getTime() - Date.now() < 24 * 60 * 60 * 1000; // Less than 24 hours
+  const today = new Date();
+  const isDueToday = 
+    deadline.getFullYear() === today.getFullYear() &&
+    deadline.getMonth() === today.getMonth() &&
+    deadline.getDate() === today.getDate();
 
   return (
-    <TouchableOpacity style={[styles.card, isUrgent && styles.urgentCard]} onPress={onPress}>
+    <TouchableOpacity style={[styles.card, isDueToday && styles.urgentCard]} onPress={onPress}>
       <View style={styles.header}>
         <View style={styles.customerInfo}>
           <User size={16} color={Colors.textSecondary} />
@@ -36,8 +40,8 @@ export function OrderCard({ order, onPress, onTogglePaid }: OrderCardProps) {
 
       <View style={styles.footer}>
         <View style={styles.deadline}>
-          <Clock size={14} color={isUrgent ? Colors.error : Colors.textSecondary} />
-          <Text style={[styles.deadlineText, isUrgent && styles.urgentText]}>
+          <Clock size={14} color={isDueToday ? Colors.error : Colors.textSecondary} />
+          <Text style={[styles.deadlineText, isDueToday && styles.urgentText]}>
             Due: {deadline.toLocaleDateString()} at {deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
