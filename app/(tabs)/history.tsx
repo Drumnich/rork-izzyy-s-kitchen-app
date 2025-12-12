@@ -7,7 +7,7 @@ import { OrderCard } from '@/components/OrderCard';
 import { Colors } from '@/constants/colors';
 import { Search, Calendar } from 'lucide-react-native';
 
-type FilterType = 'all' | 'completed' | 'this-week' | 'this-month';
+type FilterType = 'all' | 'this-week' | 'this-month';
 
 export default function OrderHistoryScreen() {
   const router = useRouter();
@@ -30,7 +30,8 @@ export default function OrderHistoryScreen() {
   }, [currentUser, router]);
 
   const filteredOrders = useMemo(() => {
-    let filtered = orders;
+    // Only show completed orders in history
+    let filtered = orders.filter(order => order.status === 'completed');
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -40,15 +41,12 @@ export default function OrderHistoryScreen() {
       );
     }
 
-    // Filter by time period and status
+    // Filter by time period
     const now = new Date();
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
     switch (filter) {
-      case 'completed':
-        filtered = filtered.filter(order => order.status === 'completed');
-        break;
       case 'this-week':
         filtered = filtered.filter(order => {
           const orderDate = new Date(order.createdAt);
@@ -63,7 +61,7 @@ export default function OrderHistoryScreen() {
         break;
       case 'all':
       default:
-        // Show all orders
+        // Show all completed orders
         break;
     }
 
@@ -127,12 +125,6 @@ export default function OrderHistoryScreen() {
           onPress={() => setFilter('all')}
         >
           <Text style={getFilterTextStyle('all')}>All</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={getFilterButtonStyle('completed')} 
-          onPress={() => setFilter('completed')}
-        >
-          <Text style={getFilterTextStyle('completed')}>Completed</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={getFilterButtonStyle('this-week')} 
