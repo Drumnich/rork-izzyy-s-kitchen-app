@@ -6,9 +6,12 @@ interface OrderState {
   orders: Order[];
   isLoading: boolean;
   paidSupported: boolean;
+  realtimeSubscribed: boolean;
   
   // Actions
   loadOrders: () => Promise<void>;
+  subscribeToRealtime: () => void;
+  unsubscribeFromRealtime: () => void;
   addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'updatedAt' | 'paid'>) => Promise<void>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   updateOrder: (orderId: string, updates: Partial<Order>) => Promise<void>;
@@ -18,10 +21,27 @@ interface OrderState {
   getOrdersByStatus: (status: OrderStatus) => Order[];
 }
 
+// Helper to format database row to Order
+const formatOrder = (data: any): Order => ({
+  id: data.id,
+  customerName: data.customer_name,
+  phoneNumber: data.phone_number || undefined,
+  items: data.items,
+  status: data.status as OrderStatus,
+  deadline: data.deadline,
+  specialNotes: data.special_notes || undefined,
+  createdAt: data.created_at,
+  updatedAt: data.updated_at,
+  paid: Boolean(data?.paid) || false,
+});
+
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+
 export const useOrderStore = create<OrderState>((set, get) => ({
   orders: [],
   isLoading: false,
   paidSupported: false,
+  realtimeSubscribed: false,
 
   loadOrders: async () => {
     set({ isLoading: true });
@@ -47,18 +67,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
 
       console.log('📋 Order store - Loaded orders:', orders?.length || 0);
 
-      const formattedOrders: Order[] = (orders || []).map(order => ({
-        id: order.id,
-        customerName: order.customer_name,
-        phoneNumber: order.phone_number || undefined,
-        items: order.items,
-        status: order.status as OrderStatus,
-        deadline: order.deadline,
-        specialNotes: order.special_notes || undefined,
-        createdAt: order.created_at,
-        updatedAt: order.updated_at,
-        paid: Boolean((order as any)?.paid) || false,
-      }));
+      const formattedOrders: Order[] = (orders || []).map(formatOrder);
 
       // Probe if 'paid' column exists
       let paidSupported = true;
@@ -73,9 +82,77 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       }
 
       set({ orders: formattedOrders, isLoading: false, paidSupported });
+      
+      // Auto-subscribe to realtime after loading orders
+      if (!get().realtimeSubscribed) {
+        get().subscribeToRealtime();
+      }
     } catch (error) {
       console.error('📋 Order store - Load orders catch error:', JSON.stringify(error, null, 2));
       set({ isLoading: false });
+    }
+  },
+
+  subscribeToRealtime: () => {
+    if (get().realtimeSubscribed || realtimeChannel) {
+      console.log('📋 Order store - Already subscribed to realtime');
+      return;
+    }
+
+    console.log('📋 Order store - Subscribing to realtime updates...');
+    
+    realtimeChannel = supabase
+      .channel('orders-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('📋 Order store - Realtime INSERT received:', payload.new.id);
+          const newOrder = formatOrder(payload.new);
+          const existingOrders = get().orders;
+          // Check if order already exists (avoid duplicates from local add)
+          if (!existingOrders.find(o => o.id === newOrder.id)) {
+            set({ orders: [newOrder, ...existingOrders] });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('📋 Order store - Realtime UPDATE received:', payload.new.id);
+          const updatedOrder = formatOrder(payload.new);
+          set((state) => ({
+            orders: state.orders.map((order) =>
+              order.id === updatedOrder.id ? updatedOrder : order
+            ),
+          }));
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('📋 Order store - Realtime DELETE received:', payload.old.id);
+          set((state) => ({
+            orders: state.orders.filter((order) => order.id !== payload.old.id),
+          }));
+        }
+      )
+      .subscribe((status) => {
+        console.log('📋 Order store - Realtime subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          set({ realtimeSubscribed: true });
+        }
+      });
+  },
+
+  unsubscribeFromRealtime: () => {
+    if (realtimeChannel) {
+      console.log('📋 Order store - Unsubscribing from realtime...');
+      supabase.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+      set({ realtimeSubscribed: false });
     }
   },
 
@@ -127,20 +204,13 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         }
       }
 
-      const newOrder: Order = {
-        id: data.id,
-        customerName: data.customer_name,
-        phoneNumber: data.phone_number || undefined,
-        items: data.items,
-        status: data.status as OrderStatus,
-        deadline: data.deadline,
-        specialNotes: data.special_notes || undefined,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        paid: Boolean(data.paid) || false,
-      };
+      const newOrder = formatOrder(data);
 
-      set((state) => ({ orders: [newOrder, ...state.orders] }));
+      // Add locally only if not already added by realtime
+      const existingOrders = get().orders;
+      if (!existingOrders.find(o => o.id === newOrder.id)) {
+        set((state) => ({ orders: [newOrder, ...state.orders] }));
+      }
       console.log('📋 Order store - Order added successfully');
     } catch (error) {
       console.error('📋 Order store - Add order catch error:', JSON.stringify(error, null, 2));
@@ -166,18 +236,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         throw new Error(`Failed to update order status: ${error.message || 'Unknown database error'}`);
       }
 
-      const updatedOrder: Order = {
-        id: data.id,
-        customerName: data.customer_name,
-        phoneNumber: data.phone_number || undefined,
-        items: data.items,
-        status: data.status as OrderStatus,
-        deadline: data.deadline,
-        specialNotes: data.special_notes || undefined,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        paid: Boolean(data.paid) || false,
-      };
+      const updatedOrder = formatOrder(data);
 
       set((state) => ({
         orders: state.orders.map((order) =>
@@ -217,18 +276,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         throw new Error(`Failed to update order: ${error.message || 'Unknown database error'}`);
       }
 
-      const updatedOrder: Order = {
-        id: data.id,
-        customerName: data.customer_name,
-        phoneNumber: data.phone_number || undefined,
-        items: data.items,
-        status: data.status as OrderStatus,
-        deadline: data.deadline,
-        specialNotes: data.special_notes || undefined,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        paid: Boolean(data.paid) || false,
-      };
+      const updatedOrder = formatOrder(data);
 
       set((state) => ({
         orders: state.orders.map((order) =>
@@ -279,17 +327,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         throw new Error(`Failed to update paid status: ${error.message || 'Unknown database error'}`);
       }
 
-      const updatedOrder: Order = {
-        id: data.id,
-        customerName: data.customer_name,
-        items: data.items,
-        status: data.status as OrderStatus,
-        deadline: data.deadline,
-        specialNotes: data.special_notes || undefined,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-        paid: Boolean((data as any)?.paid) || false,
-      };
+      const updatedOrder = formatOrder(data);
 
       set((state) => ({
         orders: state.orders.map((order) =>
