@@ -19,13 +19,6 @@ export default function OrdersScreen() {
     });
   }, [loadOrders]);
 
-  useEffect(() => {
-    if (!currentUser) {
-      console.log('🏠 OrdersScreen - No current user, redirecting to login');
-      router.replace('/login');
-    }
-  }, [currentUser, router]);
-
   const activeOrders = useMemo(() => {
     return orders
       .filter(order => order.status !== 'completed')
