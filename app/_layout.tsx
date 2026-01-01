@@ -1,5 +1,5 @@
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Colors } from '@/constants/colors';
@@ -32,6 +32,7 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const { isAuthenticated, currentUser } = useAuthStore();
+  const router = useRouter();
 
   console.log('🏠 RootLayoutNav - Render:', { 
     isAuthenticated, 
@@ -39,22 +40,13 @@ function RootLayoutNav() {
     userName: currentUser?.name
   });
 
-  if (!isAuthenticated || !currentUser) {
-    console.log('🏠 RootLayoutNav - Showing login');
-    return (
-      <Stack
-        screenOptions={{
-          headerBackTitle: 'Back',
-          headerStyle: { backgroundColor: Colors.background },
-          headerTintColor: Colors.text,
-        }}
-      >
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-      </Stack>
-    );
-  }
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser) {
+      console.log('🏠 RootLayoutNav - Redirecting to login');
+      router.replace('/login');
+    }
+  }, [isAuthenticated, currentUser, router]);
 
-  console.log('🏠 RootLayoutNav - Showing app');
   return (
     <Stack
       screenOptions={{
@@ -62,8 +54,8 @@ function RootLayoutNav() {
         headerStyle: { backgroundColor: Colors.background },
         headerTintColor: Colors.text,
       }}
-      initialRouteName="(tabs)"
     >
+      <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="create-order" options={{ presentation: 'modal', title: 'Create Order' }} />
       <Stack.Screen name="order/[id]" options={{ title: 'Order Details' }} />
