@@ -38,9 +38,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     
     try {
-      // Add timeout to prevent hanging
+      console.log('🔐 Auth store - Querying database...');
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Login timeout')), 5000);
+        setTimeout(() => reject(new Error('Login timeout')), 3000);
       });
       
       const queryPromise = supabase
@@ -50,6 +50,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         .single();
       
       const { data: users, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      console.log('🔐 Auth store - Database response received');
 
       if (error) {
         console.log('🔐 Auth store - Database query error:', error.message);

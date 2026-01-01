@@ -7,15 +7,13 @@ import { ChefHat, Lock } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isAuthenticated, currentUser, logout } = useAuthStore();
+  const { login, isAuthenticated, currentUser } = useAuthStore();
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Force logout on component mount to ensure clean state
   useEffect(() => {
-    console.log('📱 LoginScreen - Component mounted, forcing logout to ensure clean state');
-    logout();
-  }, [logout]);
+    console.log('📱 LoginScreen - Component mounted');
+  }, []);
 
   // Check if user is already authenticated and redirect
   useEffect(() => {
@@ -139,7 +137,7 @@ export default function LoginScreen() {
           <View style={styles.logoContainer}>
             <ChefHat size={48} color={Colors.primary} />
           </View>
-          <Text style={styles.title}>Izzyy's Kitchen</Text>
+          <Text style={styles.title}>Izzyy&apos;s Kitchen</Text>
           <Text style={styles.subtitle}>Enter your 4-digit PIN to continue</Text>
         </View>
 
