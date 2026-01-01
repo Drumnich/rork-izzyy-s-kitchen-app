@@ -178,12 +178,21 @@ export default function CreateOrderScreen() {
     
     if (selectedCustomer) {
       customerName = selectedCustomer.name;
+      if (!phone) {
+        Alert.alert('Error', 'Please enter a phone number');
+        return;
+      }
     } else {
       const first = firstName.trim();
       const last = lastName.trim();
       
       if (!first || !last) {
         Alert.alert('Error', 'Please enter both First Name and Last Name');
+        return;
+      }
+      
+      if (!phone) {
+        Alert.alert('Error', 'Please enter a phone number');
         return;
       }
       
@@ -357,20 +366,28 @@ export default function CreateOrderScreen() {
           ) : showNewCustomerForm ? (
             <View style={styles.newCustomerFormContainer}>
               <View style={styles.newCustomerForm}>
-                <View style={styles.nameFieldsRow}>
+                <View style={styles.nameFieldsColumn}>
                   <TextInput
-                    style={[styles.input, styles.nameInput]}
+                    style={styles.input}
                     value={firstName}
                     onChangeText={setFirstName}
                     placeholder="First Name *"
                     placeholderTextColor={Colors.textSecondary}
                   />
                   <TextInput
-                    style={[styles.input, styles.nameInput]}
+                    style={styles.input}
                     value={lastName}
                     onChangeText={setLastName}
                     placeholder="Last Name *"
                     placeholderTextColor={Colors.textSecondary}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    placeholder="Phone Number *"
+                    placeholderTextColor={Colors.textSecondary}
+                    keyboardType="phone-pad"
                   />
                 </View>
                 <TouchableOpacity onPress={() => {
@@ -382,14 +399,6 @@ export default function CreateOrderScreen() {
                   <X size={20} color={Colors.textSecondary} />
                 </TouchableOpacity>
               </View>
-              <TextInput
-                style={styles.input}
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                placeholder="Phone number (optional)"
-                placeholderTextColor={Colors.textSecondary}
-                keyboardType="phone-pad"
-              />
             </View>
           ) : (
             <View style={styles.customerButtons}>
@@ -767,12 +776,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  nameFieldsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    flex: 1,
-  },
-  nameInput: {
+  nameFieldsColumn: {
+    gap: 12,
     flex: 1,
   },
   customerButtons: {
