@@ -10,14 +10,23 @@ import { Plus, LogOut } from 'lucide-react-native';
 export default function OrdersScreen() {
   const router = useRouter();
   const { orders, loadOrders, isLoading, updateOrderPaid } = useOrderStore();
-  const { currentUser, logout } = useAuthStore();
+  const { currentUser, isAuthenticated, logout } = useAuthStore();
 
   useEffect(() => {
-    console.log('📱 OrdersScreen - Component mounted, loading orders...');
-    loadOrders().catch((error) => {
-      console.error('📱 OrdersScreen - Failed to load orders:', error);
-    });
-  }, [loadOrders]);
+    if (!isAuthenticated || !currentUser) {
+      console.log('📱 OrdersScreen - Not authenticated, redirecting to login');
+      router.replace('/login');
+    }
+  }, [isAuthenticated, currentUser, router]);
+
+  useEffect(() => {
+    if (isAuthenticated && currentUser) {
+      console.log('📱 OrdersScreen - Component mounted, loading orders...');
+      loadOrders().catch((error) => {
+        console.error('📱 OrdersScreen - Failed to load orders:', error);
+      });
+    }
+  }, [loadOrders, isAuthenticated, currentUser]);
 
   const activeOrders = useMemo(() => {
     return orders

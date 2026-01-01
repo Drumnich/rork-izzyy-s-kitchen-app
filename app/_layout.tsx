@@ -1,5 +1,5 @@
 import { useFonts } from 'expo-font';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Colors } from '@/constants/colors';
@@ -32,20 +32,12 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const { isAuthenticated, currentUser } = useAuthStore();
-  const router = useRouter();
 
   console.log('🏠 RootLayoutNav - Render:', { 
     isAuthenticated, 
     hasUser: !!currentUser,
     userName: currentUser?.name
   });
-
-  useEffect(() => {
-    if (!isAuthenticated || !currentUser) {
-      console.log('🏠 RootLayoutNav - Redirecting to login');
-      router.replace('/login');
-    }
-  }, [isAuthenticated, currentUser, router]);
 
   return (
     <Stack
