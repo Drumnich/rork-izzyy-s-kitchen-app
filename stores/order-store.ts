@@ -48,10 +48,16 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     try {
       console.log('📋 Order store - Loading orders...');
       
-      const { data: orders, error } = await supabase
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout after 10 seconds')), 10000);
+      });
+      
+      const queryPromise = supabase
         .from('orders')
         .select('*')
         .order('created_at', { ascending: false });
+      
+      const { data: orders, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('📋 Order store - Load orders error:', JSON.stringify(error, null, 2));

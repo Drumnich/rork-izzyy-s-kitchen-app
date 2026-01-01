@@ -38,12 +38,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     
     try {
-      // First try to get user from database
-      const { data: users, error } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Login timeout')), 5000);
+      });
+      
+      const queryPromise = supabase
         .from('users')
         .select('*')
         .eq('pin', pin)
         .single();
+      
+      const { data: users, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       if (error) {
         console.log('🔐 Auth store - Database query error:', error.message);

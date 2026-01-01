@@ -13,7 +13,17 @@ export default function OrdersScreen() {
   const { currentUser, logout } = useAuthStore();
 
   useEffect(() => {
-    loadOrders();
+    console.log('📱 OrdersScreen - Loading orders...');
+    const timeoutId = setTimeout(() => {
+      console.warn('📱 OrdersScreen - Load orders timeout, continuing anyway');
+    }, 15000);
+    
+    loadOrders().catch((error) => {
+      console.error('📱 OrdersScreen - Failed to load orders:', error);
+      Alert.alert('Error', 'Failed to load orders. Please check your internet connection and try again.');
+    }).finally(() => {
+      clearTimeout(timeoutId);
+    });
   }, [loadOrders]);
 
   useEffect(() => {
