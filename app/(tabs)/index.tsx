@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useCallback } from 'react';
+import React, { useMemo, useEffect, useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useOrderStore } from '@/stores/order-store';
@@ -11,13 +11,24 @@ export default function OrdersScreen() {
   const router = useRouter();
   const { orders, loadOrders, isLoading, updateOrderPaid } = useOrderStore();
   const { currentUser, isAuthenticated, logout } = useAuthStore();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+    
     if (!isAuthenticated || !currentUser) {
       console.log('📱 OrdersScreen - Not authenticated, redirecting to login');
-      router.replace('/login');
+      try {
+        router.replace('/login');
+      } catch (error) {
+        console.error('📱 OrdersScreen - Navigation error:', error);
+      }
     }
-  }, [isAuthenticated, currentUser, router]);
+  }, [isAuthenticated, currentUser, router, isMounted]);
 
   useEffect(() => {
     if (isAuthenticated && currentUser) {

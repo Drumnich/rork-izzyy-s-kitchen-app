@@ -1,7 +1,7 @@
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Colors } from '@/constants/colors';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -32,12 +32,35 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const { isAuthenticated, currentUser } = useAuthStore();
+  const segments = useSegments();
+  const router = useRouter();
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
 
-  console.log('🏠 RootLayoutNav - Render:', { 
-    isAuthenticated, 
-    hasUser: !!currentUser,
-    userName: currentUser?.name
-  });
+  useEffect(() => {
+    setIsNavigationReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isNavigationReady) return;
+
+    const inAuthGroup = segments[0] === 'login';
+
+    console.log('🏠 RootLayoutNav - Auth check:', { 
+      isAuthenticated, 
+      hasUser: !!currentUser,
+      userName: currentUser?.name,
+      inAuthGroup,
+      segments
+    });
+
+    if (!isAuthenticated && !inAuthGroup) {
+      console.log('🏠 RootLayoutNav - Redirecting to login');
+      router.replace('/login');
+    } else if (isAuthenticated && inAuthGroup) {
+      console.log('🏠 RootLayoutNav - Redirecting to tabs');
+      router.replace('/(tabs)');
+    }
+  }, [isAuthenticated, currentUser, segments, isNavigationReady, router]);
 
   return (
     <Stack
