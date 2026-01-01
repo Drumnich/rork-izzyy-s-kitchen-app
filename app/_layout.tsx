@@ -62,6 +62,7 @@ function RootLayoutNav() {
         headerStyle: { backgroundColor: Colors.background },
         headerTintColor: Colors.text,
       }}
+      initialRouteName="(tabs)"
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="create-order" options={{ presentation: 'modal', title: 'Create Order' }} />
