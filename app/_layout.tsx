@@ -2,6 +2,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Colors } from '@/constants/colors';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -33,26 +34,45 @@ export default function RootLayout() {
 function RootLayoutNav() {
   const { isAuthenticated, currentUser } = useAuthStore();
   const [isInitialized, setIsInitialized] = useState(false);
+  const [initTimeout, setInitTimeout] = useState(false);
 
   // Add a small delay to ensure proper initialization
   useEffect(() => {
+    console.log('🏠 RootLayoutNav - Initializing...');
     const timer = setTimeout(() => {
+      console.log('🏠 RootLayoutNav - Initialization complete');
       setIsInitialized(true);
     }, 100);
     
-    return () => clearTimeout(timer);
+    // Add a timeout to catch if initialization takes too long
+    const timeoutTimer = setTimeout(() => {
+      console.warn('🏠 RootLayoutNav - Initialization timeout! Forcing initialization.');
+      setInitTimeout(true);
+      setIsInitialized(true);
+    }, 3000);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(timeoutTimer);
+    };
   }, []);
 
   console.log('🏠 RootLayoutNav - Auth state check:', { 
     isAuthenticated, 
     currentUser: currentUser?.name,
     isInitialized,
+    initTimeout,
     timestamp: new Date().toISOString()
   });
 
   // Show loading until initialized
   if (!isInitialized) {
-    return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading app...</Text>
+      </View>
+    );
   }
 
   // CRITICAL: Always show login screen first if not properly authenticated
@@ -94,3 +114,17 @@ function RootLayoutNav() {
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+});
