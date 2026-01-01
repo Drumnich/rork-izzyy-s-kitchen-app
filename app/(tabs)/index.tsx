@@ -37,7 +37,6 @@ export default function OrdersScreen() {
   const handleLogout = () => {
     console.log('🏠 OrdersScreen - Logout button pressed');
     logout();
-    router.replace('/login');
   };
 
   const handleTogglePaid = useCallback(async (orderId: string, current: boolean) => {
