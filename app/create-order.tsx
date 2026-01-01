@@ -13,12 +13,13 @@ import { Plus, Minus, X, Search, User, ChevronDown, Calendar } from 'lucide-reac
 export default function CreateOrderScreen() {
   const router = useRouter();
   const { addOrder } = useOrderStore();
-  const { customers, loadCustomers } = useCustomerStore();
+  const { customers, loadCustomers, addCustomer } = useCustomerStore();
   const { currentUser } = useAuthStore();
   const { recipes, loadRecipes, isLoading: isLoadingRecipes } = useRecipeStore();
   
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [newCustomerName, setNewCustomerName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
@@ -73,7 +74,8 @@ export default function CreateOrderScreen() {
 
   const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
-    setNewCustomerName('');
+    setFirstName('');
+    setLastName('');
     setPhoneNumber(customer.phone || '');
     setShowCustomerPicker(false);
     setShowNewCustomerForm(false);
@@ -171,12 +173,21 @@ export default function CreateOrderScreen() {
   };
 
   const handleCreateOrder = async () => {
-    const customerName = selectedCustomer ? selectedCustomer.name : newCustomerName.trim();
     const phone = phoneNumber.trim();
+    let customerName = '';
     
-    if (!customerName) {
-      Alert.alert('Error', 'Please select a customer or enter a new customer name');
-      return;
+    if (selectedCustomer) {
+      customerName = selectedCustomer.name;
+    } else {
+      const first = firstName.trim();
+      const last = lastName.trim();
+      
+      if (!first || !last) {
+        Alert.alert('Error', 'Please enter both First Name and Last Name');
+        return;
+      }
+      
+      customerName = `${first} ${last}`;
     }
 
     if (selectedItems.length === 0) {
@@ -200,6 +211,21 @@ export default function CreateOrderScreen() {
         deadline: deadlineISO,
         specialNotes: specialNotes.trim() || undefined,
       });
+
+      // If it's a new customer, save to database first
+      if (!selectedCustomer && firstName.trim() && lastName.trim()) {
+        try {
+          console.log('👥 Saving new customer to database:', customerName);
+          await addCustomer({
+            name: customerName,
+            phone: phone || undefined,
+          });
+          console.log('✅ New customer saved successfully');
+        } catch (error) {
+          console.error('❌ Failed to save new customer:', error);
+          // Continue with order creation even if customer save fails
+        }
+      }
 
       await addOrder({
         customerName,
@@ -229,7 +255,8 @@ export default function CreateOrderScreen() {
             onPress: () => {
               // Reset form for another order
               setSelectedCustomer(null);
-              setNewCustomerName('');
+              setFirstName('');
+              setLastName('');
               setPhoneNumber('');
               setSelectedItems([]);
               setSelectedYear(null);
@@ -330,15 +357,26 @@ export default function CreateOrderScreen() {
           ) : showNewCustomerForm ? (
             <View style={styles.newCustomerFormContainer}>
               <View style={styles.newCustomerForm}>
-                <TextInput
-                  style={styles.input}
-                  value={newCustomerName}
-                  onChangeText={setNewCustomerName}
-                  placeholder="Enter new customer name"
-                  placeholderTextColor={Colors.textSecondary}
-                />
+                <View style={styles.nameFieldsRow}>
+                  <TextInput
+                    style={[styles.input, styles.nameInput]}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="First Name *"
+                    placeholderTextColor={Colors.textSecondary}
+                  />
+                  <TextInput
+                    style={[styles.input, styles.nameInput]}
+                    value={lastName}
+                    onChangeText={setLastName}
+                    placeholder="Last Name *"
+                    placeholderTextColor={Colors.textSecondary}
+                  />
+                </View>
                 <TouchableOpacity onPress={() => {
                   setShowNewCustomerForm(false);
+                  setFirstName('');
+                  setLastName('');
                   setPhoneNumber('');
                 }}>
                   <X size={20} color={Colors.textSecondary} />
@@ -728,6 +766,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  nameFieldsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flex: 1,
+  },
+  nameInput: {
+    flex: 1,
   },
   customerButtons: {
     flexDirection: 'row',
