@@ -27,7 +27,7 @@ export default function ProductionScreen() {
     const daysToShow = viewMode === '1month' ? 30 : 60;
     const dateMap = new Map<string, Map<string, number>>();
     
-    for (let i = 1; i <= daysToShow; i++) {
+    for (let i = 0; i <= daysToShow; i++) {
       const futureDate = new Date(today);
       futureDate.setDate(today.getDate() + i);
       const dateStr = futureDate.toISOString().split('T')[0];
@@ -62,7 +62,7 @@ export default function ProductionScreen() {
 
     const result: DayProduction[] = [];
     
-    for (let i = 1; i <= daysToShow; i++) {
+    for (let i = 0; i <= daysToShow; i++) {
       const futureDate = new Date(today);
       futureDate.setDate(today.getDate() + i);
       const dateStr = futureDate.toISOString().split('T')[0];
