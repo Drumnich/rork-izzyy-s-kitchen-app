@@ -47,6 +47,7 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const [isNavigationReady, setIsNavigationReady] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   useEffect(() => {
     setIsNavigationReady(true);
@@ -94,11 +95,19 @@ function RootLayoutNav() {
     if (!isAuthenticated && !inAuthGroup) {
       console.log('🏠 RootLayoutNav - Redirecting to login');
       router.replace('/login');
+      setHasCheckedAuth(true);
     } else if (isAuthenticated && inAuthGroup) {
       console.log('🏠 RootLayoutNav - Redirecting to tabs');
       router.replace('/(tabs)');
+      setHasCheckedAuth(true);
+    } else {
+      setHasCheckedAuth(true);
     }
   }, [isAuthenticated, currentUser, segments, isNavigationReady, router]);
+
+  if (!hasCheckedAuth) {
+    return null;
+  }
 
   return (
     <Stack
