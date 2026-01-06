@@ -6,7 +6,6 @@ import { Colors } from '@/constants/colors';
 import { useAuthStore } from '@/stores/auth-store';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { supabase } from '@/lib/supabase';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -48,58 +47,35 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const [isNavigationReady, setIsNavigationReady] = useState(false);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   useEffect(() => {
     setIsNavigationReady(true);
   }, []);
 
   useEffect(() => {
-    const registerPushToken = async () => {
+    const requestNotificationPermissions = async () => {
       if (Platform.OS === 'web') {
-        console.log('📲 Notifications - Skipping on web');
+        console.log('📲 Notifications - Skipping permissions on web');
         return;
       }
       
-      try {
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        let finalStatus = existingStatus;
-        
-        if (existingStatus !== 'granted') {
-          const { status } = await Notifications.requestPermissionsAsync();
-          finalStatus = status;
-        }
-        
-        if (finalStatus !== 'granted') {
-          console.log('📲 Notifications - Permission not granted');
-          return;
-        }
-        
-        console.log('📲 Notifications - Permission granted');
-        
-        const token = await Notifications.getExpoPushTokenAsync({
-          projectId: 'dcwy18grutm6jml92cg39',
-        });
-        
-        console.log('📲 Push token:', token.data);
-        
-        await supabase
-          .from('device_tokens')
-          .upsert({
-            token: token.data,
-            platform: Platform.OS,
-            device_id: token.data,
-          }, {
-            onConflict: 'token',
-          });
-        
-        console.log('📲 Device token registered in database');
-      } catch (error) {
-        console.error('📲 Failed to register push token:', error);
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
       }
+      
+      if (finalStatus !== 'granted') {
+        console.log('📲 Notifications - Permission not granted');
+        return;
+      }
+      
+      console.log('📲 Notifications - Permission granted');
     };
     
-    registerPushToken();
+    requestNotificationPermissions();
   }, []);
 
   useEffect(() => {
@@ -118,19 +94,11 @@ function RootLayoutNav() {
     if (!isAuthenticated && !inAuthGroup) {
       console.log('🏠 RootLayoutNav - Redirecting to login');
       router.replace('/login');
-      setHasCheckedAuth(true);
     } else if (isAuthenticated && inAuthGroup) {
       console.log('🏠 RootLayoutNav - Redirecting to tabs');
       router.replace('/(tabs)');
-      setHasCheckedAuth(true);
-    } else {
-      setHasCheckedAuth(true);
     }
   }, [isAuthenticated, currentUser, segments, isNavigationReady, router]);
-
-  if (!hasCheckedAuth) {
-    return null;
-  }
 
   return (
     <Stack

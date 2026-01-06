@@ -60,16 +60,6 @@ CREATE TABLE recipes (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Device tokens table for push notifications
-CREATE TABLE device_tokens (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  token TEXT NOT NULL UNIQUE,
-  device_id TEXT,
-  platform TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
 -- Insert default users
 INSERT INTO users (name, role, pin) VALUES 
 ('Kitchen Manager', 'admin', '1234'),
@@ -119,7 +109,7 @@ CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- In case of existing schema, add paid and phone_number columns safely
-DO $$
+DO $
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
@@ -134,21 +124,19 @@ BEGIN
   ) THEN
     ALTER TABLE orders ADD COLUMN phone_number TEXT;
   END IF;
-END $$;
+END $;
 
 -- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE device_tokens ENABLE ROW LEVEL SECURITY;
 
 -- Create policies (allow all operations)
 CREATE POLICY "Allow all operations on users" ON users FOR ALL USING (true);
 CREATE POLICY "Allow all operations on customers" ON customers FOR ALL USING (true);
 CREATE POLICY "Allow all operations on orders" ON orders FOR ALL USING (true);
 CREATE POLICY "Allow all operations on recipes" ON recipes FOR ALL USING (true);
-CREATE POLICY "Allow all operations on device_tokens" ON device_tokens FOR ALL USING (true);
 
 -- Verify tables were created
 SELECT 'Tables created successfully!' as status;

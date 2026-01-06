@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { Order, OrderStatus } from '@/types/order';
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 interface OrderState {
   orders: Order[];
@@ -112,13 +114,26 @@ export const useOrderStore = create<OrderState>((set, get) => ({
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'orders' },
-        (payload) => {
+        async (payload) => {
           console.log('📋 Order store - Realtime INSERT received:', payload.new.id);
           const newOrder = formatOrder(payload.new);
           const existingOrders = get().orders;
           
           if (!existingOrders.find(o => o.id === newOrder.id)) {
             set({ orders: [newOrder, ...existingOrders] });
+            
+            if (newOrder.status === 'pending' && Platform.OS !== 'web') {
+              console.log('📲 Triggering notification for new active order');
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: '🎂 New Order Added',
+                  body: `Order for ${newOrder.customerName} has been added to Active Orders`,
+                  data: { orderId: newOrder.id },
+                  sound: true,
+                },
+                trigger: null,
+              });
+            }
           }
         }
       )
