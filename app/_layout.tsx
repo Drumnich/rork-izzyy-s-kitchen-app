@@ -6,6 +6,7 @@ import { Colors } from '@/constants/colors';
 import { useAuthStore } from '@/stores/auth-store';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { supabase } from '@/lib/supabase';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -54,29 +55,51 @@ function RootLayoutNav() {
   }, []);
 
   useEffect(() => {
-    const requestNotificationPermissions = async () => {
+    const registerPushToken = async () => {
       if (Platform.OS === 'web') {
-        console.log('📲 Notifications - Skipping permissions on web');
+        console.log('📲 Notifications - Skipping on web');
         return;
       }
       
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        
+        if (finalStatus !== 'granted') {
+          console.log('📲 Notifications - Permission not granted');
+          return;
+        }
+        
+        console.log('📲 Notifications - Permission granted');
+        
+        const token = await Notifications.getExpoPushTokenAsync({
+          projectId: 'dcwy18grutm6jml92cg39',
+        });
+        
+        console.log('📲 Push token:', token.data);
+        
+        await supabase
+          .from('device_tokens')
+          .upsert({
+            token: token.data,
+            platform: Platform.OS,
+            device_id: token.data,
+          }, {
+            onConflict: 'token',
+          });
+        
+        console.log('📲 Device token registered in database');
+      } catch (error) {
+        console.error('📲 Failed to register push token:', error);
       }
-      
-      if (finalStatus !== 'granted') {
-        console.log('📲 Notifications - Permission not granted');
-        return;
-      }
-      
-      console.log('📲 Notifications - Permission granted');
     };
     
-    requestNotificationPermissions();
+    registerPushToken();
   }, []);
 
   useEffect(() => {

@@ -60,6 +60,16 @@ CREATE TABLE recipes (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Device tokens table for push notifications
+CREATE TABLE device_tokens (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  token TEXT NOT NULL UNIQUE,
+  device_id TEXT,
+  platform TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Insert default users
 INSERT INTO users (name, role, pin) VALUES 
 ('Kitchen Manager', 'admin', '1234'),
@@ -131,12 +141,14 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE recipes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE device_tokens ENABLE ROW LEVEL SECURITY;
 
 -- Create policies (allow all operations)
 CREATE POLICY "Allow all operations on users" ON users FOR ALL USING (true);
 CREATE POLICY "Allow all operations on customers" ON customers FOR ALL USING (true);
 CREATE POLICY "Allow all operations on orders" ON orders FOR ALL USING (true);
 CREATE POLICY "Allow all operations on recipes" ON recipes FOR ALL USING (true);
+CREATE POLICY "Allow all operations on device_tokens" ON device_tokens FOR ALL USING (true);
 
 -- Verify tables were created
 SELECT 'Tables created successfully!' as status;
