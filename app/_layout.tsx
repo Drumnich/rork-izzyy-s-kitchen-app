@@ -4,18 +4,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { Colors } from '@/constants/colors';
 import { useAuthStore } from '@/stores/auth-store';
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -50,32 +38,6 @@ function RootLayoutNav() {
 
   useEffect(() => {
     setIsNavigationReady(true);
-  }, []);
-
-  useEffect(() => {
-    const requestNotificationPermissions = async () => {
-      if (Platform.OS === 'web') {
-        console.log('📲 Notifications - Skipping permissions on web');
-        return;
-      }
-      
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      
-      if (finalStatus !== 'granted') {
-        console.log('📲 Notifications - Permission not granted');
-        return;
-      }
-      
-      console.log('📲 Notifications - Permission granted');
-    };
-    
-    requestNotificationPermissions();
   }, []);
 
   useEffect(() => {
