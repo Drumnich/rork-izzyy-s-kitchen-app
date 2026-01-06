@@ -119,7 +119,7 @@ CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- In case of existing schema, add paid and phone_number columns safely
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns 
@@ -134,7 +134,7 @@ BEGIN
   ) THEN
     ALTER TABLE orders ADD COLUMN phone_number TEXT;
   END IF;
-END $;
+END $$;
 
 -- Enable Row Level Security
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
