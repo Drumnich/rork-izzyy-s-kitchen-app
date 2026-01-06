@@ -31,13 +31,16 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  const { isAuthenticated, currentUser } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
   const [isNavigationReady, setIsNavigationReady] = useState(false);
 
   useEffect(() => {
-    setIsNavigationReady(true);
+    const timer = setTimeout(() => {
+      setIsNavigationReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -47,8 +50,6 @@ function RootLayoutNav() {
 
     console.log('🏠 RootLayoutNav - Auth check:', { 
       isAuthenticated, 
-      hasUser: !!currentUser,
-      userName: currentUser?.name,
       inAuthGroup,
       segments
     });
@@ -60,7 +61,11 @@ function RootLayoutNav() {
       console.log('🏠 RootLayoutNav - Redirecting to tabs');
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, currentUser, segments, isNavigationReady, router]);
+  }, [isAuthenticated, segments, isNavigationReady, router]);
+
+  if (!isNavigationReady) {
+    return null;
+  }
 
   return (
     <Stack
