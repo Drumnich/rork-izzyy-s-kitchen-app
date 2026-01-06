@@ -230,6 +230,8 @@ export default function CreateOrderScreen() {
             phone: phone || undefined,
           });
           console.log('✅ New customer saved successfully');
+          // Reload customers to sync the list
+          await loadCustomers();
         } catch (error) {
           console.error('❌ Failed to save new customer:', error);
           // Continue with order creation even if customer save fails
