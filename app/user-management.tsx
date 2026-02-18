@@ -4,7 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useAuthStore, User } from '@/stores/auth-store';
 import { Colors } from '@/constants/colors';
 import { UserRole } from '@/types/order';
-import { Plus, Edit3, Trash2, User as UserIcon, Shield } from 'lucide-react-native';
+import { Plus, Edit3, Trash2, User as UserIcon, Shield, Eye, EyeOff } from 'lucide-react-native';
 
 export default function UserManagementScreen() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export default function UserManagementScreen() {
     role: 'employee' as UserRole,
     pin: '',
   });
+  const [showPin, setShowPin] = useState(false);
 
   // Load users when component mounts
   useEffect(() => {
@@ -33,13 +34,13 @@ export default function UserManagementScreen() {
     }
 
     if (formData.pin.length < 4) {
-      Alert.alert('Error', 'PIN must be at least 4 digits');
+      Alert.alert('Error', 'Login code must be at least 4 digits');
       return;
     }
 
-    // Check if PIN already exists
+    // Check if code already exists
     if (users.some(user => user.pin === formData.pin)) {
-      Alert.alert('Error', 'This PIN is already in use');
+      Alert.alert('Error', 'This login code is already in use');
       return;
     }
 
@@ -60,13 +61,13 @@ export default function UserManagementScreen() {
     }
 
     if (formData.pin.length < 4) {
-      Alert.alert('Error', 'PIN must be at least 4 digits');
+      Alert.alert('Error', 'Login code must be at least 4 digits');
       return;
     }
 
-    // Check if PIN already exists (excluding current user)
+    // Check if code already exists (excluding current user)
     if (users.some(user => user.pin === formData.pin && user.id !== editingUser.id)) {
-      Alert.alert('Error', 'This PIN is already in use');
+      Alert.alert('Error', 'This login code is already in use');
       return;
     }
 
@@ -126,6 +127,7 @@ export default function UserManagementScreen() {
     setShowCreateForm(false);
     setEditingUser(null);
     setFormData({ name: '', role: 'employee', pin: '' });
+    setShowPin(false);
   };
 
   return (
@@ -197,17 +199,29 @@ export default function UserManagementScreen() {
           </View>
 
           <View style={styles.formField}>
-            <Text style={styles.label}>PIN</Text>
-            <TextInput
-              style={styles.input}
-              value={formData.pin}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, pin: text.replace(/[^0-9]/g, '') }))}
-              placeholder="Enter 4-digit PIN"
-              placeholderTextColor={Colors.textSecondary}
-              keyboardType="numeric"
-              maxLength={4}
-              secureTextEntry
-            />
+            <Text style={styles.label}>Login Code</Text>
+            <View style={styles.pinInputRow}>
+              <TextInput
+                style={[styles.input, styles.pinInput]}
+                value={formData.pin}
+                onChangeText={(text) => setFormData(prev => ({ ...prev, pin: text.replace(/[^0-9]/g, '') }))}
+                placeholder="Enter login code"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="numeric"
+                maxLength={8}
+                secureTextEntry={!showPin}
+              />
+              <TouchableOpacity
+                style={styles.pinToggle}
+                onPress={() => setShowPin(!showPin)}
+              >
+                {showPin ? (
+                  <EyeOff size={20} color={Colors.textSecondary} />
+                ) : (
+                  <Eye size={20} color={Colors.textSecondary} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.formButtons}>
@@ -378,6 +392,21 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: Colors.text,
+  },
+  pinInputRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+  },
+  pinInput: {
+    flex: 1,
+  },
+  pinToggle: {
+    padding: 12,
+    marginLeft: 8,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
   },
   roleButtons: {
     flexDirection: 'row',
