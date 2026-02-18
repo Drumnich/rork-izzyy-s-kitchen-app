@@ -1,18 +1,100 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/stores/auth-store';
 import { Colors } from '@/constants/colors';
-import { ChefHat, Lock } from 'lucide-react-native';
+import { ChefHat, Lock, ShieldAlert } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login, isAuthenticated, currentUser } = useAuthStore();
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [lockCountdown, setLockCountdown] = useState('');
+
+  const LOCKOUT_KEY = 'login_lockout';
+  const ATTEMPTS_KEY = 'login_failed_attempts';
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_DURATION = 24 * 60 * 60 * 1000;
+
+  const isLocked = lockedUntil !== null && Date.now() < lockedUntil;
+
+  const loadLockoutState = useCallback(async () => {
+    try {
+      const [storedLockout, storedAttempts] = await Promise.all([
+        AsyncStorage.getItem(LOCKOUT_KEY),
+        AsyncStorage.getItem(ATTEMPTS_KEY),
+      ]);
+      if (storedLockout) {
+        const lockTime = parseInt(storedLockout, 10);
+        if (Date.now() < lockTime) {
+          setLockedUntil(lockTime);
+        } else {
+          await AsyncStorage.multiRemove([LOCKOUT_KEY, ATTEMPTS_KEY]);
+          setLockedUntil(null);
+          setFailedAttempts(0);
+        }
+      }
+      if (storedAttempts) {
+        setFailedAttempts(parseInt(storedAttempts, 10));
+      }
+    } catch (e) {
+      console.error('📱 Error loading lockout state:', e);
+    }
+  }, []);
 
   useEffect(() => {
     console.log('📱 LoginScreen - Component mounted');
+    loadLockoutState();
+  }, [loadLockoutState]);
+
+  useEffect(() => {
+    if (!lockedUntil || Date.now() >= lockedUntil) {
+      setLockCountdown('');
+      return;
+    }
+    const tick = () => {
+      const remaining = lockedUntil - Date.now();
+      if (remaining <= 0) {
+        setLockedUntil(null);
+        setFailedAttempts(0);
+        AsyncStorage.multiRemove([LOCKOUT_KEY, ATTEMPTS_KEY]);
+        setLockCountdown('');
+        return;
+      }
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+      setLockCountdown(`${hours}h ${minutes}m ${seconds}s`);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [lockedUntil]);
+
+  const recordFailedAttempt = useCallback(async () => {
+    const newCount = failedAttempts + 1;
+    setFailedAttempts(newCount);
+    await AsyncStorage.setItem(ATTEMPTS_KEY, newCount.toString());
+    console.log(`📱 Failed attempt ${newCount}/${MAX_ATTEMPTS}`);
+    if (newCount >= MAX_ATTEMPTS) {
+      const lockTime = Date.now() + LOCKOUT_DURATION;
+      setLockedUntil(lockTime);
+      await AsyncStorage.setItem(LOCKOUT_KEY, lockTime.toString());
+      console.log('📱 Account locked for 24 hours');
+      Alert.alert(
+        'Account Locked',
+        'Too many failed attempts. You are locked out for 24 hours.'
+      );
+    }
+  }, [failedAttempts]);
+
+  const resetAttempts = useCallback(async () => {
+    setFailedAttempts(0);
+    await AsyncStorage.removeItem(ATTEMPTS_KEY);
   }, []);
 
   // Check if user is already authenticated and redirect
@@ -27,6 +109,11 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     console.log('📱 handleLogin called with PIN:', pin);
     
+    if (isLocked) {
+      Alert.alert('Account Locked', 'Too many failed attempts. Please try again later.');
+      return;
+    }
+
     if (!pin.trim()) {
       Alert.alert('Error', 'Please enter your PIN');
       return;
@@ -47,12 +134,16 @@ export default function LoginScreen() {
       
       if (success) {
         console.log('📱 Login successful! Redirecting to app...');
+        await resetAttempts();
         setPin('');
-        // Navigate to the main app
         router.replace('/(tabs)');
       } else {
         console.log('📱 Login failed - invalid PIN');
-        Alert.alert('Error', 'Invalid PIN. Please try again.');
+        await recordFailedAttempt();
+        const remaining = MAX_ATTEMPTS - (failedAttempts + 1);
+        if (remaining > 0) {
+          Alert.alert('Error', `Invalid PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
+        }
         setPin('');
       }
     } catch (error) {
@@ -67,7 +158,7 @@ export default function LoginScreen() {
   const handlePinPress = (digit: string) => {
     console.log('📱 handlePinPress called with digit:', digit, 'current PIN:', pin);
     
-    if (pin.length < 4 && !isLoading) {
+    if (pin.length < 4 && !isLoading && !isLocked) {
       const newPin = pin + digit;
       console.log('📱 Setting new PIN:', newPin);
       setPin(newPin);
@@ -85,8 +176,8 @@ export default function LoginScreen() {
   const handleLoginWithPin = async (pinToUse: string) => {
     console.log('📱 Auto-login with PIN:', pinToUse);
     
-    if (isLoading) {
-      console.log('📱 Already loading, skipping auto-login');
+    if (isLoading || isLocked) {
+      console.log('📱 Already loading or locked, skipping auto-login');
       return;
     }
     
@@ -98,10 +189,14 @@ export default function LoginScreen() {
       
       if (success) {
         console.log('📱 Auto-login successful! Redirecting to app...');
-        // Navigate to the main app
+        await resetAttempts();
         router.replace('/(tabs)');
       } else {
-        Alert.alert('Error', 'Invalid PIN. Please try again.');
+        await recordFailedAttempt();
+        const remaining = MAX_ATTEMPTS - (failedAttempts + 1);
+        if (remaining > 0) {
+          Alert.alert('Error', `Invalid PIN. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
+        }
         setPin('');
       }
     } catch (error) {
@@ -141,7 +236,22 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>Enter your 4-digit PIN to continue</Text>
         </View>
 
+        {isLocked ? (
+          <View style={styles.lockoutContainer}>
+            <ShieldAlert size={56} color={Colors.error} />
+            <Text style={styles.lockoutTitle}>Account Locked</Text>
+            <Text style={styles.lockoutMessage}>
+              Too many failed login attempts. Please try again in:
+            </Text>
+            <Text style={styles.lockoutTimer}>{lockCountdown}</Text>
+          </View>
+        ) : (
         <View style={styles.pinContainer}>
+          {failedAttempts > 0 && failedAttempts < MAX_ATTEMPTS && (
+            <Text style={styles.attemptsWarning}>
+              {MAX_ATTEMPTS - failedAttempts} attempt{MAX_ATTEMPTS - failedAttempts === 1 ? '' : 's'} remaining
+            </Text>
+          )}
           <View style={styles.pinDisplay}>
             {[...Array(4)].map((_, index) => (
               <View
@@ -199,7 +309,9 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        )}
 
+        {!isLocked && (
         <TouchableOpacity
           style={[styles.loginButton, (!pin || isLoading) && styles.loginButtonDisabled]}
           onPress={handleLogin}
@@ -210,6 +322,7 @@ export default function LoginScreen() {
             {isLoading ? 'Signing In...' : 'Sign In'}
           </Text>
         </TouchableOpacity>
+        )}
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Enter your 4-digit PIN to sign in</Text>
@@ -329,5 +442,35 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  lockoutContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  lockoutTitle: {
+    fontSize: 22,
+    fontWeight: '700' as const,
+    color: Colors.error,
+    marginTop: 8,
+  },
+  lockoutMessage: {
+    fontSize: 15,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  lockoutTimer: {
+    fontSize: 28,
+    fontWeight: '700' as const,
+    color: Colors.text,
+    marginTop: 8,
+    letterSpacing: 1,
+  },
+  attemptsWarning: {
+    fontSize: 13,
+    color: Colors.error,
+    fontWeight: '600' as const,
+    marginBottom: 12,
   },
 });
