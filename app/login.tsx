@@ -212,8 +212,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Default PINs for testing:</Text>
-          <Text style={styles.footerText}>Manager: 1234 • Staff: 5678</Text>
+          <Text style={styles.footerText}>Enter your 4-digit PIN to sign in</Text>
         </View>
       </View>
     </KeyboardAvoidingView>

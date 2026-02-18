@@ -33,8 +33,8 @@ export default function UserManagementScreen() {
       return;
     }
 
-    if (formData.pin.length < 4) {
-      Alert.alert('Error', 'Login code must be at least 4 digits');
+    if (formData.pin.length !== 4) {
+      Alert.alert('Error', 'Login code must be exactly 4 digits');
       return;
     }
 
@@ -60,8 +60,8 @@ export default function UserManagementScreen() {
       return;
     }
 
-    if (formData.pin.length < 4) {
-      Alert.alert('Error', 'Login code must be at least 4 digits');
+    if (formData.pin.length !== 4) {
+      Alert.alert('Error', 'Login code must be exactly 4 digits');
       return;
     }
 
@@ -208,7 +208,7 @@ export default function UserManagementScreen() {
                 placeholder="Enter login code"
                 placeholderTextColor={Colors.textSecondary}
                 keyboardType="numeric"
-                maxLength={8}
+                maxLength={4}
                 secureTextEntry={!showPin}
               />
               <TouchableOpacity
