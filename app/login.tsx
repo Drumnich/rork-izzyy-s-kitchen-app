@@ -14,6 +14,8 @@ export default function LoginScreen() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [lockCountdown, setLockCountdown] = useState('');
+  const [logoTapCount, setLogoTapCount] = useState(0);
+  const logoTapTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const LOCKOUT_KEY = 'login_lockout';
   const ATTEMPTS_KEY = 'login_failed_attempts';
@@ -229,9 +231,25 @@ export default function LoginScreen() {
       
       <View style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.logoContainer}>
+          <TouchableOpacity
+            style={styles.logoContainer}
+            activeOpacity={0.8}
+            onPress={() => {
+              const newCount = logoTapCount + 1;
+              setLogoTapCount(newCount);
+              if (logoTapTimerRef.current) clearTimeout(logoTapTimerRef.current);
+              logoTapTimerRef.current = setTimeout(() => setLogoTapCount(0), 2000);
+              if (newCount >= 5) {
+                setLogoTapCount(0);
+                setLockedUntil(null);
+                setFailedAttempts(0);
+                AsyncStorage.multiRemove([LOCKOUT_KEY, ATTEMPTS_KEY]);
+                Alert.alert('Reset', 'Login lockout has been cleared.');
+              }
+            }}
+          >
             <ChefHat size={48} color={Colors.primary} />
-          </View>
+          </TouchableOpacity>
           <Text style={styles.title}>Izzyy&apos;s Kitchen</Text>
           <Text style={styles.subtitle}>Enter your 4-digit PIN to continue</Text>
         </View>
