@@ -7,8 +7,10 @@ import { useRecipeStore } from '@/stores/recipe-store';
 import { mockProducts } from '@/mocks/products';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Colors } from '@/constants/colors';
-import { OrderStatus } from '@/types/order';
-import { Clock, User, FileText, Edit3, Trash2, Edit, DollarSign } from 'lucide-react-native';
+import { OrderStatus, Order } from '@/types/order';
+import { Clock, User, FileText, Edit3, Trash2, Edit, DollarSign, Download } from 'lucide-react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,6 +25,7 @@ export default function OrderDetailScreen() {
   const [showStatusModal, setShowStatusModal] = useState<boolean>(false);
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [isTogglingPaid, setIsTogglingPaid] = useState<boolean>(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
   if (!currentUser) {
     return null;
@@ -75,6 +78,283 @@ export default function OrderDetailScreen() {
       Alert.alert('Error', msg);
     } finally {
       setIsTogglingPaid(false);
+    }
+  };
+
+  const generateOrderHtml = (order: Order): string => {
+    const deadline = new Date(order.deadline);
+    const createdAt = new Date(order.createdAt);
+    const updatedAt = new Date(order.updatedAt);
+
+    const statusLabel = {
+      'pending': 'Pending',
+      'in-progress': 'In Progress',
+      'ready': 'Ready',
+      'completed': 'Completed',
+    }[order.status] || order.status;
+
+    const statusColor = {
+      'pending': '#FFB74D',
+      'in-progress': '#64B5F6',
+      'ready': '#81C784',
+      'completed': '#A5A5A5',
+    }[order.status] || '#999';
+
+    const itemsRows = order.items.map((item) => `
+      <tr>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0;">${item.name}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; text-align: center;">${item.quantity}</td>
+        <td style="padding: 10px 12px; border-bottom: 1px solid #f0f0f0; color: #666;">${item.notes || '—'}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #2D1B2E;
+            padding: 40px;
+            background: #fff;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 3px solid #E91E63;
+          }
+          .brand {
+            font-size: 28px;
+            font-weight: 700;
+            color: #E91E63;
+            margin-bottom: 4px;
+          }
+          .order-id {
+            font-size: 14px;
+            color: #8E4A6B;
+          }
+          .date-generated {
+            font-size: 12px;
+            color: #999;
+            text-align: right;
+          }
+          .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 13px;
+            margin-top: 8px;
+          }
+          .section {
+            margin-bottom: 24px;
+          }
+          .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #E91E63;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+          }
+          .info-item {
+            background: #FFF0F5;
+            padding: 14px 16px;
+            border-radius: 10px;
+          }
+          .info-label {
+            font-size: 11px;
+            color: #8E4A6B;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+          }
+          .info-value {
+            font-size: 15px;
+            font-weight: 500;
+            color: #2D1B2E;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #f0f0f0;
+          }
+          th {
+            background: #FFF0F5;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: #8E4A6B;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          th:nth-child(2) { text-align: center; }
+          .notes-box {
+            background: #FFF0F5;
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #2D1B2E;
+            border-left: 4px solid #E91E63;
+          }
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #f0f0f0;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+          }
+          .payment-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            color: #fff;
+            font-weight: 600;
+            font-size: 13px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="brand">Order Summary</div>
+            <div class="order-id">Order #${order.id.slice(-4)}</div>
+            <div class="status-badge" style="background: ${statusColor};">${statusLabel}</div>
+          </div>
+          <div class="date-generated">
+            Generated on<br/>
+            ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Customer Details</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">Name</div>
+              <div class="info-value">${order.customerName}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Phone</div>
+              <div class="info-value">${order.phoneNumber || 'N/A'}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Deadline</div>
+              <div class="info-value">${deadline.toLocaleDateString()} at ${deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Payment</div>
+              <div>
+                <span class="payment-badge" style="background: ${order.paid ? '#10B981' : '#F59E0B'};">
+                  ${order.paid ? 'Paid' : 'Not Paid'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Order Items</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRows}
+            </tbody>
+          </table>
+        </div>
+
+        ${order.specialNotes ? `
+        <div class="section">
+          <div class="section-title">Special Notes</div>
+          <div class="notes-box">${order.specialNotes}</div>
+        </div>
+        ` : ''}
+
+        <div class="section">
+          <div class="section-title">Timeline</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">Created</div>
+              <div class="info-value">${createdAt.toLocaleDateString()} at ${createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">Last Updated</div>
+              <div class="info-value">${updatedAt.toLocaleDateString()} at ${updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          Order #${order.id.slice(-4)} &middot; Generated automatically
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  const handleDownloadPdf = async () => {
+    if (isGeneratingPdf || !order) return;
+    try {
+      setIsGeneratingPdf(true);
+      console.log('📄 Generating PDF for order:', order.id);
+
+      const html = generateOrderHtml(order);
+
+      if (Platform.OS === 'web') {
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(html);
+          printWindow.document.close();
+          printWindow.print();
+        } else {
+          Alert.alert('Error', 'Could not open print window. Please allow popups.');
+        }
+      } else {
+        const { uri } = await Print.printToFileAsync({ html });
+        console.log('📄 PDF generated at:', uri);
+
+        const isSharingAvailable = await Sharing.isAvailableAsync();
+        if (isSharingAvailable) {
+          await Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: `Order #${order.id.slice(-4)}`,
+            UTI: 'com.adobe.pdf',
+          });
+        } else {
+          Alert.alert('PDF Generated', 'PDF was created but sharing is not available on this device.');
+        }
+      }
+    } catch (error) {
+      console.error('📄 PDF generation error:', error);
+      const msg = error instanceof Error ? error.message : 'Failed to generate PDF';
+      Alert.alert('Error', msg);
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
@@ -214,6 +494,18 @@ export default function OrderDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Actions</Text>
           <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.pdfButton]}
+              onPress={handleDownloadPdf}
+              activeOpacity={0.7}
+              testID="download-pdf-button"
+            >
+              <Download size={20} color={Colors.surface} />
+              <Text style={styles.actionButtonText}>
+                {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity 
               style={[styles.actionButton, styles.editButton]}
               onPress={handleEditOrder}
@@ -551,6 +843,9 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontSize: 16,
     fontWeight: '600',
+  },
+  pdfButton: {
+    backgroundColor: '#0EA5E9',
   },
   editButton: {
     backgroundColor: '#6366F1',
