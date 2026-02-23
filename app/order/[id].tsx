@@ -360,7 +360,7 @@ export default function OrderDetailScreen() {
 
   const handleEditOrder = () => {
     console.log('🔧 Order Detail - Edit button pressed for order:', order.id);
-    router.push(`/edit-order/${order.id}`);
+    router.push(`/edit-order/${order.id}` as any);
   };
 
   const handleDeleteOrder = () => {
@@ -374,7 +374,7 @@ export default function OrderDetailScreen() {
     if (product && product.recipeId) {
       const recipe = getRecipeById(product.recipeId);
       if (recipe) {
-        router.push(`/recipe/${product.recipeId}`);
+        router.push(`/recipe/${product.recipeId}` as any);
       } else {
         Alert.alert('Recipe Not Found', `Recipe for ${itemName} is not available.`);
       }

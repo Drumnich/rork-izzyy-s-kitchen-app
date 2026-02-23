@@ -23,7 +23,7 @@ export default function OrdersScreen() {
     if (!isAuthenticated || !currentUser) {
       console.log('📱 OrdersScreen - Not authenticated, redirecting to login');
       try {
-        router.replace('/login');
+        router.replace('/login' as any);
       } catch (error) {
         console.error('📱 OrdersScreen - Navigation error:', error);
       }
@@ -46,12 +46,12 @@ export default function OrdersScreen() {
   }, [orders]);
 
   const handleOrderPress = (orderId: string) => {
-    router.push(`/order/${orderId}`);
+    router.push(`/order/${orderId}` as any);
   };
 
   const handleCreateOrder = () => {
     console.log('🏠 OrdersScreen - Create order button pressed');
-    router.push('/create-order');
+    router.push('/create-order' as any);
   };
 
   const handleLogout = () => {

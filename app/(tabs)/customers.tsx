@@ -67,12 +67,12 @@ export default function CustomersScreen() {
 
   const handleCreateCustomer = () => {
     console.log('➕ Create customer button pressed');
-    router.push('/create-customer');
+    router.push('/create-customer' as any);
   };
 
   const handleEditCustomer = (customer: Customer) => {
     console.log('✏️ Edit customer button pressed for:', customer.name, customer.id);
-    router.push(`/edit-customer/${customer.id}`);
+    router.push(`/edit-customer/${customer.id}` as any);
   };
 
   return (

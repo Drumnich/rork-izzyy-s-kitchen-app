@@ -25,7 +25,7 @@ export default function OrderHistoryScreen() {
   useEffect(() => {
     if (!currentUser) {
       console.log('📜 HistoryScreen - No current user, redirecting to login');
-      router.replace('/login');
+      router.replace('/login' as any);
     }
   }, [currentUser, router]);
 
@@ -70,7 +70,7 @@ export default function OrderHistoryScreen() {
   }, [orders, searchQuery, filter]);
 
   const handleOrderPress = (orderId: string) => {
-    router.push(`/order/${orderId}`);
+    router.push(`/order/${orderId}` as any);
   };
 
   const getFilterButtonStyle = (filterType: FilterType) => [

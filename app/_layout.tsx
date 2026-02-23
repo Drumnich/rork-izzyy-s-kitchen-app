@@ -46,7 +46,7 @@ function RootLayoutNav() {
   useEffect(() => {
     if (!isNavigationReady) return;
 
-    const inAuthGroup = segments[0] === 'login';
+    const inAuthGroup = segments[0] === ('login' as any);
 
     console.log('🏠 RootLayoutNav - Auth check:', { 
       isAuthenticated, 
@@ -56,10 +56,10 @@ function RootLayoutNav() {
 
     if (!isAuthenticated && !inAuthGroup) {
       console.log('🏠 RootLayoutNav - Redirecting to login');
-      router.replace('/login');
+      router.replace('/login' as any);
     } else if (isAuthenticated && inAuthGroup) {
       console.log('🏠 RootLayoutNav - Redirecting to tabs');
-      router.replace('/(tabs)');
+      router.replace('/(tabs)' as any);
     }
   }, [isAuthenticated, segments, isNavigationReady, router]);
 

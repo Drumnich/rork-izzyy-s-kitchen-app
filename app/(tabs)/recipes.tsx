@@ -22,12 +22,12 @@ export default function RecipesScreen() {
   );
 
   const handleRecipePress = (recipeId: string) => {
-    router.push(`/recipe/${recipeId}`);
+    router.push(`/recipe/${recipeId}` as any);
   };
 
   const handleCreateRecipe = () => {
     console.log('📖 RecipesScreen - Create recipe button pressed');
-    router.push('/create-recipe');
+    router.push('/create-recipe' as any);
   };
 
   const categories = [

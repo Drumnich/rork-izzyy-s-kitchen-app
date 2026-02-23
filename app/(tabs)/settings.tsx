@@ -24,7 +24,7 @@ export default function SettingsScreen() {
             console.log('🔧 SettingsScreen - Logout confirmed');
             logout();
             // Force navigation to login screen
-            router.replace('/login');
+            router.replace('/login' as any);
           }
         },
       ]
@@ -32,7 +32,7 @@ export default function SettingsScreen() {
   };
 
   const handleUserManagement = () => {
-    router.push('/user-management');
+    router.push('/user-management' as any);
   };
 
   const handleClearData = () => {
@@ -116,7 +116,7 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>Management</Text>
         <TouchableOpacity 
           style={styles.settingItem} 
-          onPress={() => router.push('/recipes')}
+          onPress={() => router.push('/recipes' as any)}
         >
           <View style={styles.settingLeft}>
             <BookOpen size={20} color={Colors.primary} />
@@ -131,7 +131,7 @@ export default function SettingsScreen() {
         </TouchableOpacity>
         <TouchableOpacity 
           style={styles.settingItem} 
-          onPress={() => router.push('/customers')}
+          onPress={() => router.push('/customers' as any)}
         >
           <View style={styles.settingLeft}>
             <Users size={20} color={Colors.primary} />
