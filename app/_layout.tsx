@@ -85,6 +85,7 @@ function RootLayoutNav() {
       <Stack.Screen name="edit-customer/[id]" options={{ title: 'Edit Customer' }} />
       <Stack.Screen name="edit-order/[id]" options={{ title: 'Edit Order' }} />
       <Stack.Screen name="user-management" options={{ title: 'User Management' }} />
+      <Stack.Screen name="batch-print" options={{ title: 'Batch Print Orders' }} />
     </Stack>
   );
 }

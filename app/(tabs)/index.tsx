@@ -5,7 +5,7 @@ import { useOrderStore } from '@/stores/order-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { OrderCard } from '@/components/OrderCard';
 import { Colors } from '@/constants/colors';
-import { Plus, LogOut } from 'lucide-react-native';
+import { Plus, LogOut, Printer } from 'lucide-react-native';
 
 export default function OrdersScreen() {
   const router = useRouter();
@@ -57,6 +57,11 @@ export default function OrdersScreen() {
   const handleLogout = () => {
     console.log('🏠 OrdersScreen - Logout button pressed');
     logout();
+  };
+
+  const handleBatchPrint = () => {
+    console.log('🏠 OrdersScreen - Batch print button pressed');
+    router.push('/batch-print' as any);
   };
 
   const handleTogglePaid = useCallback(async (orderId: string, current: boolean) => {
@@ -114,6 +119,10 @@ export default function OrdersScreen() {
           <TouchableOpacity style={styles.createOrderButton} onPress={handleCreateOrder}>
             <Plus size={24} color={Colors.surface} />
             <Text style={styles.createOrderButtonText}>Create New Order</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.batchPrintButton} onPress={handleBatchPrint} testID="batch-print-button">
+            <Printer size={20} color="#0EA5E9" />
+            <Text style={styles.batchPrintButtonText}>Batch Print Orders</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -236,6 +245,24 @@ const styles = StyleSheet.create({
     color: Colors.surface,
     fontSize: 18,
     fontWeight: '700',
+  },
+  batchPrintButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 10,
+    borderWidth: 1.5,
+    borderColor: '#0EA5E9',
+  },
+  batchPrintButtonText: {
+    color: '#0EA5E9',
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
   listContent: {
     paddingHorizontal: 20,
